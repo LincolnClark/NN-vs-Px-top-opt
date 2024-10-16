@@ -30,6 +30,15 @@ class BiasLayer(torch.nn.Module):
     def forward(self, x):
         return x + self.bias_layer
     
+class RandInput(torch.nn.Module):
+    def __init__(self, len) -> None:
+        super().__init__()
+        bias_value = torch.randn((len))
+        self.bias_layer = torch.nn.Parameter(bias_value)
+    
+    def forward(self, x):
+        return x + self.bias_layer
+    
 class NeuralNetwork(nn.Module):
     def __init__(self, n, m, scale):
         super().__init__()
@@ -37,35 +46,40 @@ class NeuralNetwork(nn.Module):
         self.flatten = nn.Flatten()
 
         self.nn_modules = nn.ModuleList([
-            BiasLayer(),
+            RandInput(n*m),
             nn.Linear(n * m, n * m),
             nn.Tanh(),
             nn.LazyBatchNorm2d(affine = False),
-            nn.Conv2d(1, 128, 5),
+            nn.Conv2d(1, 256, 5, bias = False, padding_mode = "circular", padding = "same"),
             BiasLayer(),
             nn.Tanh(),
 
             nn.LazyBatchNorm2d(affine = False),
-            nn.Conv2d(128, 64, 5),
+            nn.Conv2d(256, 128, 5, bias = False, padding_mode = "circular", padding = "same"),
             BiasLayer(),
             nn.Tanh(),
 
             nn.LazyBatchNorm2d(affine = False),
-            nn.Conv2d(64, 32, 5),
+            nn.Conv2d(128, 64, 5, bias = False, padding_mode = "circular", padding = "same"),
             BiasLayer(),
             nn.Tanh(),
 
             nn.LazyBatchNorm2d(affine = False),
-            nn.Conv2d(32, 16, 5),
+            nn.Conv2d(64, 32, 5, bias = False, padding_mode = "circular", padding = "same"),
+            BiasLayer(),
+            nn.Tanh(),
+
+            nn.LazyBatchNorm2d(affine = False),
+            nn.Conv2d(32, 16, 5, bias = False, padding_mode = "circular", padding = "same"),
             BiasLayer(),
             nn.Tanh(),
             nn.LazyBatchNorm2d(affine = False),
-            nn.Conv2d(16, 1, 5),
+            nn.Conv2d(16, 1, 5, bias = False, padding_mode = "circular", padding = "same"),
             BiasLayer()]
         )
 
         self.normalise_loc = []#[3, 8, 13, 18, 22]
-        self.upscale_loc = [7, 12, 17]
+        self.upscale_loc = [7, 12, 17, 22]
         self.n_modules = len(self.nn_modules)
         self.n_functionals = len(self.normalise_loc) + len(self.upscale_loc)
 
@@ -118,7 +132,7 @@ def train_loop(model, loss_fn, optimiser, x, beta, hist, c_hist,
     hist.append(kappa.detach().cpu().numpy())
     c_hist.append(cost.detach().cpu().numpy())
 
-    print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
+    #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
     
 
 def NN_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
@@ -145,8 +159,8 @@ def NN_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype
     y_axis = geom.y.cpu()
 
     # Work out the shape of the input vector into NN
-    N, M = (16, 16)
-    model = NeuralNetwork(N, M, 2).to(device)
+    N, M = (options["N NN"], options["M NN"])
+    model = NeuralNetwork(N, M, options["t NN"]).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
                                 betas = [options["beta 1"],options["beta 2"]],
@@ -162,14 +176,28 @@ def NN_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype
     cost_hist = []
 
     for t in range(options["num iterations"]):
-        print(f"Iteration {t+1}")
+        #print(f"Iteration {t+1}")
 
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
                    options, angles, layers, targets, targetp, geom, sim_dtype)
-    print("Done!")
+    #print("Done!")
 
     model.eval()
     design = model(X)
     design = torch.special.expit(beta[-1] * design)
 
-    return design.detach().cpu().numpy(), cost_hist, kappa_hist
+    # Final performance
+    # Evaluate final performance
+    with torch.no_grad():
+        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
+    
+        layers[0] = {"t": options["t"], "eps": eps}
+        ts = torch.zeros_like(targets)
+        tp = torch.zeros_like(targetp)
+        for i in range(len(angles)):
+            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+                                        geom, sim_dtype)
+            ts[i] = t_s
+            tp[i] = t_p
+
+    return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

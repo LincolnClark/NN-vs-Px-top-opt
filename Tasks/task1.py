@@ -1,7 +1,7 @@
 import torch
 from utils.material import aSi, SiO2, void
    
-seed = 39393939 # Starting seed for random number generation
+seed = 3939 # Starting seed for random number generation
 lam = 900 # Wavelength (nm)
 
 # Angles to optimise over
@@ -32,17 +32,20 @@ options = {
         # RCWA settings
         "M": 9, # Number of Fourier coefficients along x
         "N": 9, # Number of Fourier coefficients along y
-        "nx": 250, # number of x points for design domain
-        "ny": 250, # Number of y points for design domain
+        "nx": 240, # number of x points for design domain
+        "ny": 240, # Number of y points for design domain
+        "N NN": 15,
+        "M NN": 15,
+        "t NN": 2,
         
         # Optimisation settings
-        "num iterations": 150,
+        "num iterations": 200,
         "beta increase factor": 1.2,
-        "beta increase step": 10, # Number of iterations between thresholding increases
+        "beta increase step": 15, # Number of iterations between thresholding increases
         "eta norm": 0.5,
 
         # Robustness options
-        "blur radius": 40,
+        "blur radius": 30,
         "edge blur": 8,
         "edge weight": 0.25,
         "start rob": 350,
@@ -50,10 +53,10 @@ options = {
 
         # ADAM optimiser settings
         "alpha": 0.01, # max step size
-        "alpha NN": 0.002,
+        "alpha NN": 0.001,
         "beta 1": 0.9, # decay rate of 1st moment
         "beta 2": 0.999, # decay rate of 2nd moment
-        "epsilon": 1e-8 # factor to avoid divison by 0
+        "epsilon": 1e-6 # factor to avoid divison by 0
     }
 
 sim_dtype = torch.complex64

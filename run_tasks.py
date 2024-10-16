@@ -26,30 +26,34 @@ device = (
     else "cpu"
 )
 
+print(f"There are {len(task_list)} tasks to run")
+
 for i in range(len(task_list)):
     cur_task = task_list[i]
 
     print(f"{task_names[i]}")
     print("======================================")
     # (seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device
-    print("Neural Network")
-    print("--------------------------------------")
+    print("Neural network started")
     t = time.time()
-    tNN_des, tNN_cost, tNN_des_hist = NN_optim_pol(cur_task.seed, cur_task.lam, cur_task.angles, 
-                                                   cur_task.targets, cur_task.targetp, 
-                                                   cur_task.layers, cur_task.options, 
-                                                   cur_task.sim_dtype, cur_task.geo_dtype, device)
+    NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_optim_pol(cur_task.seed, cur_task.lam, cur_task.angles, 
+                                                               cur_task.targets, cur_task.targetp, 
+                                                               cur_task.layers, cur_task.options, 
+                                                               cur_task.sim_dtype, cur_task.geo_dtype, device)
     print(f"NN optimisation finished in {time.time() - t:.5f} s")
     print("======================================")
-    print("Pixel")
-    print("--------------------------------------")
+    print("Pixel optimisation started")
     t = time.time()
-    tpx_des, tpx_cost, tpx_des_hist = pixel_optim_pol(cur_task.seed, cur_task.lam, cur_task.angles, 
-                                                      cur_task.targets, cur_task.targetp, 
-                                                      cur_task.layers, cur_task.options, 
-                                                      cur_task.sim_dtype, cur_task.geo_dtype, device)
+    px_des, px_cost, px_des_hist, px_ts, px_tp = pixel_optim_pol(cur_task.seed, cur_task.lam, cur_task.angles, 
+                                                                 cur_task.targets, cur_task.targetp, 
+                                                                 cur_task.layers, cur_task.options, 
+                                                                 cur_task.sim_dtype, cur_task.geo_dtype, device)
     print(f"Pixel optimisation finished in {time.time() - t:.5f} s")
     print("======================================")
 
-    compare_cost(tNN_cost, tpx_cost, f"{RES_FOLD}{task_names[i]}_cost_compare.png")
-    compare_final_designs(tNN_des, tpx_des, f"{RES_FOLD}{task_names[i]}_design_compare.png")
+    compare_cost(NN_cost, px_cost, f"{RES_FOLD}{task_names[i]}_cost_compare.png")
+    compare_final_designs(NN_des, px_des, f"{RES_FOLD}{task_names[i]}_design_compare.png")
+    compare_performances(NN_ts, NN_tp, px_ts, px_tp, cur_task.targets, cur_task.targetp,
+                         cur_task.angles, f"{RES_FOLD}{task_names[i]}_performance_compare.png")
+    animate_history(NN_des_hist, f"{RES_FOLD}{task_names[i]}_kappa_NN_ani.gif")
+    animate_history(px_des_hist, f"{RES_FOLD}{task_names[i]}_kappa_px_ani.gif")

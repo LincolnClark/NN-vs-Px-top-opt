@@ -50,8 +50,7 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
 
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
-    gamma = torch.rand((options["nx"], options["ny"]), dtype = geo_dtype, device = device)
-    #gamma = (gamma + torch.fliplr(gamma))/2 # Force symmetry
+    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device)
     gamma = filter(gamma, 40, xx, yy, geo_dtype, device)
 
     # Velocity and momentum for ADAM
@@ -67,15 +66,17 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
 
     # Main optimisation loop
     while iter < options["num iterations"]:
-        print(f"Iteration {iter+1}")
+        #print(f"Iteration {iter+1}")
 
         gamma.requires_grad_(True)
 
         # Perform blurring
-        #gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
+        gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
+
+        kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
         
         #kappa_norm = projection(gamma_blur, beta[iter], 0.5, geo_dtype, device)
-        kappa_norm = projection(gamma, beta[iter], 0.5, geo_dtype, device)
+        #kappa_norm = projection(gamma, beta[iter], 0.5, geo_dtype, device)
         cost = cost_function(kappa_norm, options, angles, layers, targets, targetp, geom, sim_dtype)
 
         # Work out gradient of cost function w.r.t density with backpropagation
@@ -97,16 +98,30 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
             # Force symmetry
             #gamma = (gamma + torch.fliplr(gamma))/2
 
-            # Enforce BCs
-            gamma[gamma > 1] = 1
-            gamma[gamma < 0] = 0
+            # Normalise gamma
+            gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)
 
             # Update history
             cost_hist.append(cost.detach().cpu().numpy())
             norm_kappa_hist.append(kappa_norm.detach().cpu().numpy())
 
-            print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
+            #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
 
             iter = iter + 1
 
-    return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist
+
+    # Evaluate final performance
+    with torch.no_grad():
+        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - kappa_norm)
+    
+        layers[0] = {"t": options["t"], "eps": eps}
+        ts = torch.zeros_like(targets)
+        tp = torch.zeros_like(targetp)
+        for i in range(len(angles)):
+            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+                                        geom, sim_dtype)
+            ts[i] = t_s
+            tp[i] = t_p
+
+
+    return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
