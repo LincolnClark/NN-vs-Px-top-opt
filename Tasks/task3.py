@@ -5,11 +5,11 @@ seed = 39 # Starting seed for random number generation
 lam = 650 # Wavelength (nm)
 
 # Angles to optimise over
-angles = torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+angles = torch.tensor([0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0])
 
 # Target transmission for s and p polarised light
-targets = torch.tensor([0.0, 1.0, 0.0, 0.0, 0.0, 0.0])
-targetp = torch.tensor([0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+targets = torch.tensor([0.5, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0])
+targetp = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 0.5])
 
 # Setup layers, in case extra thin films involved
 layers = [None]
