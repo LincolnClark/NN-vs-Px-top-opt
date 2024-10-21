@@ -50,7 +50,7 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
 
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
-    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 5
+    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 15
     gamma = filter(gamma, 40, xx, yy, geo_dtype, device)
 
     # Velocity and momentum for ADAM

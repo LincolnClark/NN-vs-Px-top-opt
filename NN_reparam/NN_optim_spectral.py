@@ -139,7 +139,7 @@ def train_loop(model, loss_fn, optimiser, x, beta, hist, c_hist,
     #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
     
 
-def NN_optim_pol(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def NN_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)

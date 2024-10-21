@@ -1,9 +1,10 @@
 import torch
 import time
-from NN_reparam.NN_optim_pol_dependent import NN_optim_pol
-from Pixel_param.pixel_optim_pol_dependent import pixel_optim_pol
+from NN_reparam.NN_optim_spectral import NN_optim_spectral
+from Pixel_param.pixel_optim_spectral import pixel_optim_spectral
 from utils.material import SiO2
 from utils.plot_compare import *
+from utils.measurement import length_scale, convergence_time, binarisation_level
 
 def bandpass(wavelengths, val, lam, width):
     filt = torch.zeros(wavelengths.shape)
@@ -73,9 +74,9 @@ def run_spec_benchmark(patterned_material, t, wavelengths, targets, targetp,
             "t NN": 2,
             
             # Optimisation settings
-            "num iterations": 200,
+            "num iterations": 300,
             "beta increase factor": 1.2,
-            "beta increase step": 15, # Number of iterations between thresholding increases
+            "beta increase step": 20, # Number of iterations between thresholding increases
             "eta norm": 0.5,
 
             # Robustness options
@@ -94,14 +95,14 @@ def run_spec_benchmark(patterned_material, t, wavelengths, targets, targetp,
 
     # (seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device
     t = time.time()
-    NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_optim_pol(seed, wavelengths, 
+    NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_optim_spectral(seed, wavelengths, 
                                                                targets, targetp, 
                                                                layers, options, 
                                                                sim_dtype, geo_dtype, device)
     NN_time = time.time() - t
 
     t = time.time()
-    px_des, px_cost, px_des_hist, px_ts, px_tp = pixel_optim_pol(seed, wavelengths, 
+    px_des, px_cost, px_des_hist, px_ts, px_tp = pixel_optim_spectral(seed, wavelengths, 
                                                                  targets, targetp, 
                                                                  layers, options, 
                                                                  sim_dtype, geo_dtype, device)
@@ -115,4 +116,15 @@ def run_spec_benchmark(patterned_material, t, wavelengths, targets, targetp,
     animate_history(NN_des_hist, f"{res_folder}{label}_kappa_NN_ani.gif")
     animate_history(px_des_hist, f"{res_folder}{label}_kappa_px_ani.gif")
 
-    return NN_time, px_time
+    # Calculate the benchmark parameters
+    NN_final_cost = NN_cost[-1]
+    px_final_cost = px_cost[-1]
+    NN_fs_solid, NN_fs_void = length_scale(NN_des > 0.5, period[0]/NN_des.shape[0])
+    px_fs_solid, px_fs_void = length_scale(px_des > 0.5, period[0]/px_des.shape[0])
+    NN_conv_time = convergence_time(NN_cost)
+    px_conv_time = convergence_time(px_cost)
+    NN_bin_level = binarisation_level(NN_des)
+    px_bin_level = binarisation_level(px_des)
+
+    return ((NN_final_cost, NN_time, NN_fs_solid, NN_fs_void, NN_conv_time, NN_bin_level), 
+            (px_final_cost, px_time, px_fs_solid, px_fs_void, px_conv_time, px_bin_level))

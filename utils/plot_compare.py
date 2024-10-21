@@ -15,6 +15,7 @@ def compare_cost(NN_cost, pixel_cost, filename):
     ax.legend()
 
     plt.savefig(filename)
+    plt.close()
 
     return
 
@@ -32,6 +33,7 @@ def compare_final_designs(NN_des, px_des, filename):
     ax2.set_title("Pixel")
 
     plt.savefig(filename)
+    plt.close()
 
 def compare_performances(NNts, NNtp, pxts, pxtp, targets, targetp, angles, filename):
 
@@ -57,6 +59,7 @@ def compare_performances(NNts, NNtp, pxts, pxtp, targets, targetp, angles, filen
 
     fig.tight_layout()
     plt.savefig(filename)
+    plt.close()
 
 def compare_performances_spectral(NNts, NNtp, pxts, pxtp, targets, targetp, wavelengths, filename):
 
@@ -82,6 +85,7 @@ def compare_performances_spectral(NNts, NNtp, pxts, pxtp, targets, targetp, wave
 
     fig.tight_layout()
     plt.savefig(filename)
+    plt.close()
 
 def animate_history(hist, fname):
     """Create an animation of the density history"""
@@ -107,3 +111,4 @@ def animate_history(hist, fname):
     # Create animation
     animation = ani.ArtistAnimation(fig = fig, artists = artists, repeat = True, interval = 50)
     animation.save(filename = fname, writer = "pillow")
+    plt.close()
