@@ -75,6 +75,7 @@ def trans_at_angle_comp(layers, theta, phi, options, geom, sim_dtype):
 
     return torch.abs(Sss), torch.abs(Spp)
 
+
 #===========================================================================
 # Filtering, projection and edge finding
 #===========================================================================

@@ -58,6 +58,31 @@ def compare_performances(NNts, NNtp, pxts, pxtp, targets, targetp, angles, filen
     fig.tight_layout()
     plt.savefig(filename)
 
+def compare_performances_spectral(NNts, NNtp, pxts, pxtp, targets, targetp, wavelengths, filename):
+
+    plt.clf()
+    plt.cla()
+    fig, (ax1, ax2) = plt.subplots(1, 2, sharey = True)
+
+    ax1.scatter(wavelengths, targets, color = "black", marker = "X", label = "target")
+    ax2.scatter(wavelengths, targetp, color = "black", marker = "X", label = "target")
+
+    ax1.scatter(wavelengths, NNts, label = "NN")
+    ax1.scatter(wavelengths, pxts, label = "pixel")
+    ax2.scatter(wavelengths, NNtp, label = "NN")
+    ax2.scatter(wavelengths, pxtp, label = "pixel")
+
+    ax1.set_title("s polarisation")
+    ax2.set_title("p polarisation")
+    ax1.set_xlabel("Wavelength (nm)")
+    ax2.set_xlabel("Wavelength (nm)")
+    ax1.set_ylabel("Transmittance")
+    ax1.legend()
+    ax2.legend()
+
+    fig.tight_layout()
+    plt.savefig(filename)
+
 def animate_history(hist, fname):
     """Create an animation of the density history"""
 

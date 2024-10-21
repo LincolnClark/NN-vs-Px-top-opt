@@ -5,22 +5,29 @@ from Pixel_param.pixel_optim_pol_dependent import pixel_optim_pol
 from utils.material import SiO2
 from utils.plot_compare import *
 
-def quadratic_OTF(angles, NA):
-    kx = torch.sin(torch.deg2rad(angles))
-    return kx**2 / NA**2
+def bandpass(wavelengths, val, lam, width):
+    filt = torch.zeros(wavelengths.shape)
+    ind = torch.logical_and(wavelengths < lam + width/2, wavelengths > lam - width/2)
+    filt[ind] = val
+    return filt
 
-def identity_OTF(angles, val):
-    return val * torch.ones(angles.shape)
+def bandstop(wavelengths, val, lam, width):
+    filt = val * torch.ones(wavelengths.shape)
+    ind = torch.logical_and(wavelengths < lam + width/2, wavelengths > lam - width/2)
+    filt[ind] = 0
+    return filt
 
-def run_ang_benchmark(lam, patterned_material, t, angles, targets, targetp, 
-                      period, layers, label, res_folder):
+def constant_value(wavelengths, val):
+    return val * torch.ones(wavelengths.shape)
+
+def run_spec_benchmark(patterned_material, t, wavelengths, targets, targetp, 
+                       period, layers, label, res_folder):
     """
-    lam - wavelength in free space (nm)
     patterend_material - Material class for patterned material
     t - thickness of patterned layer (nm)
-    angles - angles to evaluate OTF at (deg)
-    targets - target OTF for s polarised light
-    target- - target OTF for p polarised light
+    wavelengths - angles to evaluate OTF at (deg)
+    targets - target transmittance for s polarised light
+    target- - target transmittance for p polarised light
     period - (Lx, Ly) period along x and y
     layers - list of layers, [None] for no extra layers
     label - string labelling current benchmark
@@ -37,18 +44,22 @@ def run_ang_benchmark(lam, patterned_material, t, angles, targets, targetp,
 
     seed = 39 # Starting seed for random number generation
 
+    # wavelength where material properties are evaluated
+    # Change code later for dispersion
+    lam0 = wavelengths[len(wavelengths) // 2]
+
     options = {
             # Geometry and material
             "t": t, # thickness of the design domain
             "mat 1": 1., # permittivity when density is 0
-            "mat 2": patterned_material.eps(lam), # permittivity when density is 1
+            "mat 2": patterned_material.eps(lam0), # permittivity when density is 1
             "superstrate": 1., # Superstrate permittivity
-            "substrate": SiO2.eps(lam), # substrate permittivity
+            "substrate": SiO2.eps(lam0), # substrate permittivity
             "Lx": period[0], # Period along x
             "Ly": period[1], # Period along y
 
             # Illumination
-            "lam": lam, # Wavelegnth in free space
+            "lam": lam0, # Wavelegnth in free space
             "theta": 1e-8,
             "phi": 1e-8,
 
@@ -83,14 +94,14 @@ def run_ang_benchmark(lam, patterned_material, t, angles, targets, targetp,
 
     # (seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device
     t = time.time()
-    NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_optim_pol(seed, lam, angles, 
+    NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_optim_pol(seed, wavelengths, 
                                                                targets, targetp, 
                                                                layers, options, 
                                                                sim_dtype, geo_dtype, device)
     NN_time = time.time() - t
 
     t = time.time()
-    px_des, px_cost, px_des_hist, px_ts, px_tp = pixel_optim_pol(seed, lam, angles, 
+    px_des, px_cost, px_des_hist, px_ts, px_tp = pixel_optim_pol(seed, wavelengths, 
                                                                  targets, targetp, 
                                                                  layers, options, 
                                                                  sim_dtype, geo_dtype, device)
@@ -98,8 +109,9 @@ def run_ang_benchmark(lam, patterned_material, t, angles, targets, targetp,
 
     compare_cost(NN_cost, px_cost, f"{res_folder}{label}_cost_compare.png")
     compare_final_designs(NN_des, px_des, f"{res_folder}{label}_design_compare.png")
-    compare_performances(NN_ts, NN_tp, px_ts, px_tp, targets, targetp,
-                         angles, f"{res_folder}{label}_performance_compare.png")
+
+    compare_performances_spectral(NN_ts, NN_tp, px_ts, px_tp, targets, targetp,
+                                  wavelengths, f"{res_folder}{label}_performance_compare.png")
     animate_history(NN_des_hist, f"{res_folder}{label}_kappa_NN_ani.gif")
     animate_history(px_des_hist, f"{res_folder}{label}_kappa_px_ani.gif")
 

@@ -1,6 +1,3 @@
-# TODO
-#  - Write the damn code lol
-
 import torch
 from torch import nn
 import matplotlib.pyplot as plt
@@ -8,21 +5,25 @@ import matplotlib.pyplot as plt
 import torcwa
 from utils.utils import *
 
-def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dtype):
+def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
     # Build layers
+    # TODO: Dispersion
     eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
     
     layers[0] = {"t": options["t"], "eps": eps}
     ts = torch.zeros_like(targets)
     tp = torch.zeros_like(targetp)
-    for i in range(len(angles)):
-        t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+
+    for i in range(len(wavelengths)):
+        options["lam"] = wavelengths[i]
+
+        t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                        geom, sim_dtype)
-        ts[i] = t_s
-        tp[i] = t_p
+        ts[i] = t_s ** 2
+        tp[i] = t_p ** 2
 
     cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
-    return torch.sqrt(cost/len(angles))
+    return torch.sqrt(cost/len(wavelengths))
 
 class BiasLayer(torch.nn.Module):
     def __init__(self) -> None:
@@ -112,7 +113,7 @@ class NeuralNetwork(nn.Module):
         return x
     
 def train_loop(model, loss_fn, optimiser, x, beta, hist, c_hist, 
-               options, angles, layers, targets, targetp, geom, sim_dtype):
+               options, wavelengths, layers, targets, targetp, geom, sim_dtype):
 
     # Set the model to training mode
     model.train()
@@ -125,7 +126,7 @@ def train_loop(model, loss_fn, optimiser, x, beta, hist, c_hist,
     # Binarisation
     kappa = torch.special.expit(beta * gamma)
 
-    cost = loss_fn(kappa, options, angles, layers, targets, targetp, geom, sim_dtype)
+    cost = loss_fn(kappa, options, wavelengths, layers, targets, targetp, geom, sim_dtype)
 
     # Backpropagation
     cost.backward()
@@ -138,7 +139,7 @@ def train_loop(model, loss_fn, optimiser, x, beta, hist, c_hist,
     #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
     
 
-def NN_optim_spec(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def NN_optim_pol(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -182,7 +183,7 @@ def NN_optim_spec(seed, lam, angles, targets, targetp, layers, options, sim_dtyp
         #print(f"Iteration {t+1}")
 
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
-                   options, angles, layers, targets, targetp, geom, sim_dtype)
+                   options, wavelengths, layers, targets, targetp, geom, sim_dtype)
     #print("Done!")
 
     model.eval()
@@ -197,10 +198,13 @@ def NN_optim_spec(seed, lam, angles, targets, targetp, layers, options, sim_dtyp
         layers[0] = {"t": options["t"], "eps": eps}
         ts = torch.zeros_like(targets)
         tp = torch.zeros_like(targetp)
-        for i in range(len(angles)):
-            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+
+        for i in range(len(wavelengths)):
+            options["lam"] = wavelengths[i]
+
+            t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                         geom, sim_dtype)
-            ts[i] = t_s
-            tp[i] = t_p
+            ts[i] = t_s ** 2
+            tp[i] = t_p ** 2
 
     return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
