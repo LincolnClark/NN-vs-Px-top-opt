@@ -13,6 +13,10 @@ def convergence_time(cost_history, tol = 0.05):
     return ind
 
 def length_scale(design, px_size):
+    """
+    Calculate the minimum feature size for a particular binary design
+    Using this paper: https://doi.org/10.1364/JOSAB.506412
+    """
 
     min_width, min_spacing = imageruler.minimum_length_scale(design, periodic = (True, True))
     

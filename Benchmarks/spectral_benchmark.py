@@ -74,9 +74,9 @@ def run_spec_benchmark(patterned_material, t, wavelengths, targets, targetp,
             "t NN": 2,
             
             # Optimisation settings
-            "num iterations": 300,
+            "num iterations": 500,
             "beta increase factor": 1.2,
-            "beta increase step": 20, # Number of iterations between thresholding increases
+            "beta increase step": 30, # Number of iterations between thresholding increases
             "eta norm": 0.5,
 
             # Robustness options

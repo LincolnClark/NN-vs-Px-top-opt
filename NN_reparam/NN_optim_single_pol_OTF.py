@@ -5,30 +5,28 @@ import matplotlib.pyplot as plt
 import torcwa
 from utils.utils import *
 from NN_reparam.neural_network_architectures import NeuralNetwork
-from NN_reparam.neural_network_architectures import train_loop_spectral as train_loop
+from NN_reparam.neural_network_architectures import train_loop_single_angle as train_loop
 
-def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
+def cost_function(dens, options, angles, layers, target, pol, geom, sim_dtype):
     # Build layers
-    # TODO: Dispersion
     eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
     
     layers[0] = {"t": options["t"], "eps": eps}
-    ts = torch.zeros_like(targets)
-    tp = torch.zeros_like(targetp)
-
-    for i in range(len(wavelengths)):
-        options["lam"] = wavelengths[i]
-
-        t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
+    t = torch.zeros_like(target)
+    for i in range(len(angles)):
+        t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
                                        geom, sim_dtype)
-        ts[i] = t_s ** 2
-        tp[i] = t_p ** 2
+        if pol == "s":
+            t[i] = t_s
+        elif pol == "p":
+            t[i] = t_p
+        else:
+            raise Exception("Invalid polarisation")
 
-    cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
-    return torch.sqrt(cost/len(wavelengths))
-    
+    cost = torch.sum((t - target) ** 2)
+    return torch.sqrt(cost/len(angles))
 
-def NN_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -53,7 +51,12 @@ def NN_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_
 
     # Work out the shape of the input vector into NN
     N, M = (options["N NN"], options["M NN"])
-    model = NeuralNetwork(N, M, options["t NN"]).to(device)
+    N, M = (options["N NN"], options["M NN"])
+    model = NeuralNetwork(N, M, options["ker size"],
+                          scale = options["scaling"],
+                          channels = options["channels"],
+                          offset = options["offset"],
+                          dense_channels = options["dense channels"]).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
                                 betas = [options["beta 1"],options["beta 2"]],
@@ -69,11 +72,8 @@ def NN_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_
     cost_hist = []
 
     for t in range(options["num iterations"]):
-        #print(f"Iteration {t+1}")
-
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
-                   options, wavelengths, layers, targets, targetp, geom, sim_dtype)
-    #print("Done!")
+                   options, angles, layers, target, pol, geom, sim_dtype)
 
     model.eval()
     design = model(X)
@@ -85,15 +85,13 @@ def NN_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_
         eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
     
         layers[0] = {"t": options["t"], "eps": eps}
-        ts = torch.zeros_like(targets)
-        tp = torch.zeros_like(targetp)
-
-        for i in range(len(wavelengths)):
-            options["lam"] = wavelengths[i]
-
-            t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
+        t = torch.zeros_like(target)
+        for i in range(len(angles)):
+            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
                                         geom, sim_dtype)
-            ts[i] = t_s ** 2
-            tp[i] = t_p ** 2
+            if pol == "s":
+                t[i] = t_s
+            elif pol == "p":
+                t[i] = t_p
 
-    return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
+    return design.detach().cpu().numpy(), cost_hist, kappa_hist, t.detach().cpu().numpy()
