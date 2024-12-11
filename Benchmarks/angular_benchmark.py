@@ -237,7 +237,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
         px_conv_time.append(convergence_time(px_costs[i]))
 
     return ((NN_final_cost, NN_time, NN_fs_solid, NN_fs_void, NN_conv_time),
-            (NN_px_final_cost, NN_px_time, NN_px_fs_solid, NN_fs_void, NN_px_conv_time),
+            (NN_px_final_cost, NN_px_time, NN_px_fs_solid, NN_px_fs_void, NN_px_conv_time),
             (LMpx_final_cost, LMpx_times, LMpx_fs_solid, LMpx_fs_void, LMpx_conv_time),
             (px_final_cost, px_times, px_fs_solid, px_fs_void, px_conv_time))
 
@@ -378,6 +378,6 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
         px_conv_time.append(convergence_time(px_costs[i]))
 
     return ((NN_final_cost, NN_time, NN_fs_solid, NN_fs_void, NN_conv_time),
-            (NN_px_final_cost, NN_px_time, NN_px_fs_solid, NN_fs_void, NN_px_conv_time),
+            (NN_px_final_cost, NN_px_time, NN_px_fs_solid, NN_px_fs_void, NN_px_conv_time),
             (LMpx_final_cost, LMpx_times, LMpx_fs_solid, LMpx_fs_void, LMpx_conv_time),
             (px_final_cost, px_times, px_fs_solid, px_fs_void, px_conv_time))

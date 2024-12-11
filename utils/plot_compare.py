@@ -94,7 +94,7 @@ def compare_performances_single_pol(NNt, NNpxt, LMpxt, pxt, target, angles, blur
     plt.close()
 
 
-def compare_performances_spectral(NNts, NNtp, pxts, pxtp, targets, targetp, wavelengths, filename):
+def compare_performances_dual_pol_spectral(NNts, NNtp, NNpxts, NNpxtp, LMpxts, LMpxtp, pxts, pxtp, targets, targetp, wavelengths, blur, filename):
 
     plt.clf()
     plt.cla()
@@ -104,17 +104,47 @@ def compare_performances_spectral(NNts, NNtp, pxts, pxtp, targets, targetp, wave
     ax2.scatter(wavelengths, targetp, color = "black", marker = "X", label = "target")
 
     ax1.scatter(wavelengths, NNts, label = "NN")
-    ax1.scatter(wavelengths, pxts, label = "pixel")
     ax2.scatter(wavelengths, NNtp, label = "NN")
-    ax2.scatter(wavelengths, pxtp, label = "pixel")
+
+    ax1.scatter(wavelengths, NNpxts, label = "NN + px")
+    ax2.scatter(wavelengths, NNpxtp, label = "NN + px")
+
+    for i in range(len(blur)):
+        ax1.scatter(wavelengths, LMpxts[i], label = f"LMpx {blur[i]}")
+        ax2.scatter(wavelengths, LMpxtp[i], label = f"LMpx {blur[i]}")
+        ax1.scatter(wavelengths, pxts[i], label = f"px {blur[i]}")
+        ax2.scatter(wavelengths, pxtp[i], label = f"px {blur[i]}")
+        
 
     ax1.set_title("s polarisation")
     ax2.set_title("p polarisation")
-    ax1.set_xlabel("Wavelength (nm)")
-    ax2.set_xlabel("Wavelength (nm)")
+    ax1.set_xlabel("Angle of incidence (deg)")
+    ax2.set_xlabel("Angle of incidence (deg)")
     ax1.set_ylabel("Transmittance")
     ax1.legend()
     ax2.legend()
+
+    fig.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+
+def compare_performances_single_pol_spectral(NNt, NNpxt, LMpxt, pxt, target, wavelengths, blur, filename):
+
+    plt.clf()
+    plt.cla()
+    fig, ax = plt.subplots(1, 1)
+
+    ax.scatter(wavelengths, target, color = "black", marker = "X", label = "target")
+
+    ax.scatter(wavelengths, NNt, label = "NN")
+    ax.scatter(wavelengths, NNpxt, label = "NN + px")
+    for i in range(len(blur)):
+        ax.scatter(wavelengths, LMpxt[i], label = f"LMpx {blur[i]}")
+        ax.scatter(wavelengths, pxt[i], label = f"px {blur[i]}")
+
+    ax.set_xlabel("Angle of incidence (deg)")
+    ax.set_ylabel("Transmittance")
+    ax.legend()
 
     fig.tight_layout()
     plt.savefig(filename)

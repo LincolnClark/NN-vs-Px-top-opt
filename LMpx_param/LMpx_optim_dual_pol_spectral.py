@@ -6,15 +6,14 @@ import torcwa
 from utils.utils import *
 
 def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
-    # Build layers
-    # TODO: Dispersion
-    eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
-    
-    layers[0] = {"t": options["t"], "eps": eps}
+
     ts = torch.zeros_like(targets)
     tp = torch.zeros_like(targetp)
 
     for i in range(len(wavelengths)):
+        # Build layers
+        eps =  options["mat 2"][i] + (options["mat 1"] - options["mat 2"][i])*(1 - dens)
+        layers[0] = {"t": options["t"], "eps": eps}
         options["lam"] = wavelengths[i]
 
         t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 

@@ -71,7 +71,7 @@ def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
     kappa_hist = []
     cost_hist = []
 
-    for t in range(options["num iterations"]):
+    for t in range(options["num NN"]):
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
                    options, angles, layers, target, pol, geom, sim_dtype)
 
