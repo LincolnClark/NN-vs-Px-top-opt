@@ -1,90 +1,170 @@
 import torch
 import numpy as np
 import pandas as pd
+import copy
 
-from Benchmarks.angular_benchmark import quadratic_OTF, identity_OTF, run_ang_benchmark
-from Benchmarks.spectral_benchmark import bandpass, bandstop, constant_value, run_spec_benchmark
-from utils.material import aSi, Si3N4
+from Benchmarks.spectral_benchmark import bandpass, bandstop, constant_value, run_pol_dependent_spec_benchmark, run_pol_ind_spec_benchmark
+from utils.material import aSi
 
-def add_results_to_dict(results, dic, label):
-    dic["Benchmark"].append(label)
-    dic["Final cost value"].append(results[0])
-    dic["Time (s)"].append(results[1])
-    dic["Min feature size solid (nm)"].append(results[2])
-    dic["Min Feature size void (nm)"].append(results[3])
-    dic["Convergence time (# iterations)"].append(results[4])
-    dic["Binarisation level"].append(results[5])
+def add_results_to_dicts(NNdict, NNpxdict, LMpxdict, pxdict, results, label, blur, wl, period, width):
+    NN_res, NNpx_res, LMpx_res, px_res = results
+
+    # Add NN results
+    NNdict["Label"].append("Neural Network")
+    NNdict["Benchmark"].append(label)
+    NNdict["Wavelength (nm)"].append(wl)
+    NNdict["Final cost value"].append(NN_res[0])
+    NNdict["Time (s)"].append(NN_res[1])
+    NNdict["Min feature size solid (nm)"].append(NN_res[2])
+    NNdict["Min Feature size void (nm)"].append(NN_res[3])
+    NNdict["Convergence time (# iterations)"].append(NN_res[4])
+    NNdict["Px (nm)"].append(period[0])
+    NNdict["Py (nm)"].append(period[1])
+    NNdict["Width (nm)"].append(width)
+
+    # Add NNpx results
+    NNpxdict["Label"].append("Neural Network")
+    NNpxdict["Benchmark"].append(label)
+    NNpxdict["Wavelength (nm)"].append(wl)
+    NNpxdict["Final cost value"].append(NNpx_res[0])
+    NNpxdict["Time (s)"].append(NNpx_res[1])
+    NNpxdict["Min feature size solid (nm)"].append(NNpx_res[2])
+    NNpxdict["Min Feature size void (nm)"].append(NNpx_res[3])
+    NNpxdict["Convergence time (# iterations)"].append(NNpx_res[4])
+    NNpxdict["Px (nm)"].append(period[0])
+    NNpxdict["Py (nm)"].append(period[1])
+    NNpxdict["Width (nm)"].append(width)
+
+    # Do pixel based results
+    for i in range(len(blur)):
+        LMpxdict[i]["Label"].append(f"LMpx {blur[i]}nm blur")
+        LMpxdict[i]["Benchmark"].append(label)
+        LMpxdict[i]["Wavelength (nm)"].append(wl)
+        LMpxdict[i]["Final cost value"].append(LMpx_res[0][i])
+        LMpxdict[i]["Time (s)"].append(LMpx_res[1][i])
+        LMpxdict[i]["Min feature size solid (nm)"].append(LMpx_res[2][i])
+        LMpxdict[i]["Min Feature size void (nm)"].append(LMpx_res[3][i])
+        LMpxdict[i]["Convergence time (# iterations)"].append(LMpx_res[4][i])
+        LMpxdict[i]["Px (nm)"].append(period[0])
+        LMpxdict[i]["Py (nm)"].append(period[1])
+        LMpxdict[i]["Width (nm)"].append(width)
+
+        pxdict[i]["Label"].append(f"px {blur[i]}nm blur")
+        pxdict[i]["Benchmark"].append(label)
+        pxdict[i]["Wavelength (nm)"].append(wl)
+        pxdict[i]["Final cost value"].append(px_res[0][i])
+        pxdict[i]["Time (s)"].append(px_res[1][i])
+        pxdict[i]["Min feature size solid (nm)"].append(px_res[2][i])
+        pxdict[i]["Min Feature size void (nm)"].append(px_res[3][i])
+        pxdict[i]["Convergence time (# iterations)"].append(px_res[4][i])
+        pxdict[i]["Px (nm)"].append(period[0])
+        pxdict[i]["Py (nm)"].append(period[1])
+        pxdict[i]["Width (nm)"].append(width)
     return
 
+def save_results(NN, NNpx, LMpx, px, blur_level, csv_folder):
+    NN_spec_df = pd.DataFrame(NN)
+    NN_px_spec_df = pd.DataFrame(NNpx)
+    LMpx_spec_df = [pd.DataFrame(LMpx[i]) for i in range(len(blur_level))]
+    px_spec_df = [pd.DataFrame(px[i]) for i in range(len(blur_level))]
+
+    NN_spec_df.to_csv(f"{csv_folder}NN_spectral_benchamrk.csv")
+    NN_px_spec_df.to_csv(f"{csv_folder}NNpx_spectral_benchamrk.csv")
+    for i in range(len(blur_level)):
+        LMpx_spec_df[i].to_csv(f"{csv_folder}LMpx_blur{blur_level[i]}_spectral_benchamrk.csv")
+        px_spec_df[i].to_csv(f"{csv_folder}px_blur{blur_level[i]}_spectral_benchamrk.csv")
+
 if __name__ == "__main__":
+
+    #torch.use_deterministic_algorithms(True)
 
     result_folder = "./Benchmark_results/plots/"
     csv_folder = "./Benchmark_results/"
 
-    # =================================================================================================================
-    # Spectral benchmarks
-    N_WL = 31
-    mats = [Si3N4, aSi, aSi, aSi]
-    thicknesses = [600, 300, 400, 500]
-    periods = [(450, 450), (850, 850)]
-    labels = ["650nm_SiN", "1550nm_aSi"]
+    # Spectral Benchmarks
+    N_WL = 21
+    
+    # Real benchmark set
+    """"""
 
-    lam = [650, 900, 1300, 1550]
-    lam_optim = [(500, 800), (700, 1100), (1000, 1600), (1250, 1750)]
+    # Test set
+    
+    lams = [1550]
+    mats = [aSi]
+    thicknesses = [550]
+    periods = [(1000, 1000)]
+    labels = ["1550nm_aSi"]
+
+    dl = [200, 400]
     widths = [50, 100]
+    blur_level = [None, 45]
 
-     # Create dictionaries to store results
-    NN_spectrum_results = {
+    # Create dictionaries to store results
+    results_dict = {
+        "Label": [],
         "Benchmark": [],
+        "Wavelength (nm)": [],
+        "Px (nm)": [],
+        "Py (nm)": [],
+        "Width (nm)": [],
         "Final cost value": [],
         "Time (s)": [],
         "Min feature size solid (nm)": [],
         "Min Feature size void (nm)": [],
-        "Convergence time (# iterations)": [],
-        "Binarisation level": []
-    }
-    px_spectrum_results = {
-        "Benchmark": [],
-        "Final cost value": [],
-        "Time (s)": [],
-        "Min feature size solid (nm)": [],
-        "Min Feature size void (nm)": [],
-        "Convergence time (# iterations)": [],
-        "Binarisation level": []
+        "Convergence time (# iterations)": []
     }
 
-    print("Spectral pol insensitive bandpass")
-    for i in range(len(mats)):
-        for w in widths:
-            # Determine the target Spectrums
-            wavelengths = torch.linspace(lam_optim[i][0], lam_optim[i][1], N_WL)
-            targets = bandpass(wavelengths, 0.9, lam[i], w)
-            targetp = bandpass(wavelengths, 0.9, lam[i], w)
+    NN_res = copy.deepcopy(results_dict)
+    NNpx_res = copy.deepcopy(results_dict)
+    LMpx_res = [copy.deepcopy(results_dict) for i in blur_level]
+    px_res = [copy.deepcopy(results_dict) for i in blur_level]
 
-            NN_res, px_res = run_spec_benchmark(mats[i], thicknesses[i], wavelengths, targets,
-                                                targetp, periods[i], [None], 
-                                                f"Spectrum_pol_insensitive_{labels[i]}_bandpass{lam[i]}", result_folder)
+    dev = (
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps"
+        if torch.backends.mps.is_available()
+        else "cpu"
+    )
+    print(f"Using {dev} device")
+
+    for i in range(len(lams)):
+
+        for j in range(len(widths)):
+            print(f"Running s pol optimisation for {lams[i]} nm and width of {widths[j]}")
+
+            
+            # Determine the target spectrum
+            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] - dl[j], N_WL)
+            target = bandpass(wavelengths, 1, lams[i], widths[j])
+
+            res = run_pol_ind_spec_benchmark(lams[i], mats[i], thicknesses[i], wavelengths, target,
+                                            "s", periods[i], [None], 
+                                            f"spectral_s_pol_{labels[i]}_bandpass_wdth{widths[j]}", result_folder, 
+                                            blur_level)
             # Save benchmark results to dictionary
-            add_results_to_dict(NN_res, NN_spectrum_results, f"{labels[i]}_bandpass{lam[i]}_width{w}_pol_insens")
-            add_results_to_dict(px_res, px_spectrum_results, f"{labels[i]}_bandpass{lam[i]}_width{w}_pol_insens")
-        
-    print("Spectral pol sensitive bandpass")
-    for i in range(len(mats)):
-        for w in widths:
-            # Determine the target Spectrums
-            wavelengths = torch.linspace(lam_optim[i][0], lam_optim[i][1], N_WL)
-            targets = bandpass(wavelengths, 0.9, lam[i], widths[i])
-            targetp = constant_value(wavelengths, 0.9)
+            add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "s polarisation bandpass", blur_level, lams[i], periods[i], widths[j])
 
-            NN_res, px_res = run_spec_benchmark(mats[i], thicknesses[i], wavelengths, targets,
-                                                targetp, periods[i], [None], 
-                                                f"Spectrum_pol_sensitive_s_{labels[i]}_bandpass{lam[i]}", result_folder)
+    # Update results csv
+    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
+            
+    for i in range(len(lams)):
+
+        for j in range(len(widths)):
+            print(f"Running pol independent optimisation for {lams[i]} nm and width of {widths[j]}")
+
+            
+            # Determine the target spectrum
+            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] - dl[j], N_WL)
+            targets = bandpass(wavelengths, 1, lams[i], widths[j])
+            targetp = bandpass(wavelengths, 1, lams[i], widths[j])
+
+            res = run_pol_dependent_spec_benchmark(lams[i], mats[i], thicknesses[i], wavelengths, targets,
+                                                   targetp, periods[i], [None], 
+                                                   f"spectral_pol_ind_{labels[i]}_bandpass_wdth{widths[j]}", result_folder, 
+                                                   blur_level)
             # Save benchmark results to dictionary
-            add_results_to_dict(NN_res, NN_spectrum_results, f"{labels[i]}_bandpass{lam[i]}_width{w}_pol_sens_s")
-            add_results_to_dict(px_res, px_spectrum_results, f"{labels[i]}_bandpass{lam[i]}_width{w}_pol_sens_s")
+            add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "pol independent bandpass", blur_level, lams[i], periods[i], widths[j])
 
-    # Save results to csv file
-    NN_spectral_df = pd.DataFrame(NN_spectrum_results)
-    px_spectral_df = pd.DataFrame(px_spectrum_results)
-    NN_spectral_df.to_csv(f"{csv_folder}NN_spectral_benchamrk.csv")
-    px_spectral_df.to_csv(f"{csv_folder}px_spectral_benchamrk.csv")
+    # Update results csv
+    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)

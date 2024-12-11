@@ -137,8 +137,8 @@ def train_loop_single_angle(model, loss_fn, optimiser, x, beta, hist, c_hist,
     hist.append(kappa.detach().cpu().numpy())
     c_hist.append(cost.detach().cpu().numpy())
 
-def train_loop_spectral(model, loss_fn, optimiser, x, beta, hist, c_hist, 
-                        options, wavelengths, layers, targets, targetp, geom, sim_dtype):
+def train_loop_dual_spectral(model, loss_fn, optimiser, x, beta, hist, c_hist, 
+                             options, wavelengths, layers, targets, targetp, geom, sim_dtype):
 
     # Set the model to training mode
     model.train()
@@ -152,6 +152,30 @@ def train_loop_spectral(model, loss_fn, optimiser, x, beta, hist, c_hist,
     kappa = torch.special.expit(beta * gamma)
 
     cost = loss_fn(kappa, options, wavelengths, layers, targets, targetp, geom, sim_dtype)
+
+    # Backpropagation
+    cost.backward()
+    optimiser.step()
+    optimiser.zero_grad()
+
+    hist.append(kappa.detach().cpu().numpy())
+    c_hist.append(cost.detach().cpu().numpy())
+
+def train_loop_single_spectral(model, loss_fn, optimiser, x, beta, hist, c_hist, 
+                             options, wavelengths, layers, target, pol, geom, sim_dtype):
+
+    # Set the model to training mode
+    model.train()
+    
+    # Forward simulation
+    gamma = model(x)
+
+    if True in torch.isnan(gamma):
+        print("NaN in gamma")
+    # Binarisation
+    kappa = torch.special.expit(beta * gamma)
+
+    cost = loss_fn(kappa, options, wavelengths, layers, target, pol, geom, sim_dtype)
 
     # Backpropagation
     cost.backward()
