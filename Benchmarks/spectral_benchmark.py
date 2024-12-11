@@ -20,13 +20,13 @@ def bandpass(wavelengths, val, lam, width):
     filt = torch.zeros(wavelengths.shape)
     ind = torch.logical_and(wavelengths < lam + width/2, wavelengths > lam - width/2)
     filt[ind] = val
-    return filt
+    return filt.float()
 
 def bandstop(wavelengths, val, lam, width):
     filt = val * torch.ones(wavelengths.shape)
     ind = torch.logical_and(wavelengths < lam + width/2, wavelengths > lam - width/2)
     filt[ind] = 0
-    return filt
+    return filt.float()
 
 def constant_value(wavelengths, val):
     return val * torch.ones(wavelengths.shape)
@@ -75,6 +75,7 @@ def params(t, patterned_material, wavelengths, lam, period, blur):
             # Optimisation settings
             "num iterations": 300,
             "num NN": 150,
+            "NN px fact": 0.5,
             "beta increase factor": 1.3,
             "beta increase step": 20, # Number of iterations between thresholding increases
             "eta norm": 0.5,

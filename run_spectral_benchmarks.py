@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 import copy
-
+import matplotlib.pyplot as plt
 from Benchmarks.spectral_benchmark import bandpass, bandstop, constant_value, run_pol_dependent_spec_benchmark, run_pol_ind_spec_benchmark
 from utils.material import aSi
 
@@ -68,11 +68,11 @@ def save_results(NN, NNpx, LMpx, px, blur_level, csv_folder):
     LMpx_spec_df = [pd.DataFrame(LMpx[i]) for i in range(len(blur_level))]
     px_spec_df = [pd.DataFrame(px[i]) for i in range(len(blur_level))]
 
-    NN_spec_df.to_csv(f"{csv_folder}NN_spectral_benchamrk.csv")
-    NN_px_spec_df.to_csv(f"{csv_folder}NNpx_spectral_benchamrk.csv")
+    NN_spec_df.to_csv(f"{csv_folder}NN_spectral_benchmark.csv")
+    NN_px_spec_df.to_csv(f"{csv_folder}NNpx_spectral_benchmark.csv")
     for i in range(len(blur_level)):
-        LMpx_spec_df[i].to_csv(f"{csv_folder}LMpx_blur{blur_level[i]}_spectral_benchamrk.csv")
-        px_spec_df[i].to_csv(f"{csv_folder}px_blur{blur_level[i]}_spectral_benchamrk.csv")
+        LMpx_spec_df[i].to_csv(f"{csv_folder}LMpx_blur{blur_level[i]}_spectral_benchmark.csv")
+        px_spec_df[i].to_csv(f"{csv_folder}px_blur{blur_level[i]}_spectral_benchmark.csv")
 
 if __name__ == "__main__":
 
@@ -131,12 +131,12 @@ if __name__ == "__main__":
     for i in range(len(lams)):
 
         for j in range(len(widths)):
-            print(f"Running s pol optimisation for {lams[i]} nm and width of {widths[j]}")
+            print(f"Running s pol optimisation for {lams[i]} nm and width of {widths[j]} nm")
 
             
             # Determine the target spectrum
-            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] - dl[j], N_WL)
-            target = bandpass(wavelengths, 1, lams[i], widths[j])
+            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] + dl[j], N_WL)
+            target = bandpass(wavelengths, 1.0, lams[i], widths[j])
 
             res = run_pol_ind_spec_benchmark(lams[i], mats[i], thicknesses[i], wavelengths, target,
                                             "s", periods[i], [None], 
@@ -151,11 +151,11 @@ if __name__ == "__main__":
     for i in range(len(lams)):
 
         for j in range(len(widths)):
-            print(f"Running pol independent optimisation for {lams[i]} nm and width of {widths[j]}")
+            print(f"Running pol independent optimisation for {lams[i]} nm and width of {widths[j]} nm")
 
             
             # Determine the target spectrum
-            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] - dl[j], N_WL)
+            wavelengths = torch.linspace(lams[i] - dl[j], lams[i] + dl[j], N_WL)
             targets = bandpass(wavelengths, 1, lams[i], widths[j])
             targetp = bandpass(wavelengths, 1, lams[i], widths[j])
 

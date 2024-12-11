@@ -68,11 +68,11 @@ def save_results(NN, NNpx, LMpx, px, blur_level, csv_folder):
     LMpx_OTF_df = [pd.DataFrame(LMpx[i]) for i in range(len(blur_level))]
     px_OTF_df = [pd.DataFrame(px[i]) for i in range(len(blur_level))]
 
-    NN_OTF_df.to_csv(f"{csv_folder}NN_OTF_benchamrk.csv")
-    NN_px_OTF_df.to_csv(f"{csv_folder}NNpx_OTF_benchamrk.csv")
+    NN_OTF_df.to_csv(f"{csv_folder}NN_OTF_benchmark.csv")
+    NN_px_OTF_df.to_csv(f"{csv_folder}NNpx_OTF_benchmark.csv")
     for i in range(len(blur_level)):
-        LMpx_OTF_df[i].to_csv(f"{csv_folder}LMpx_blur{blur_level[i]}_OTF_benchamrk.csv")
-        px_OTF_df[i].to_csv(f"{csv_folder}px_blur{blur_level[i]}_OTF_benchamrk.csv")
+        LMpx_OTF_df[i].to_csv(f"{csv_folder}LMpx_blur{blur_level[i]}_OTF_benchmark.csv")
+        px_OTF_df[i].to_csv(f"{csv_folder}px_blur{blur_level[i]}_OTF_benchmark.csv")
 
 if __name__ == "__main__":
 

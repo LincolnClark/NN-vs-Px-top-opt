@@ -86,7 +86,7 @@ def NN_px_optim_pol(seed, wavelengths, target, pol, layers, options, sim_dtype, 
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
     
-    gamma = design.detach()
+    gamma = options["NN px fact"] * design.detach()
 
     # Velocity and momentum for ADAM
     mt = torch.zeros_like(gamma)
@@ -133,18 +133,20 @@ def NN_px_optim_pol(seed, wavelengths, target, pol, layers, options, sim_dtype, 
 
     # Evaluate final performance
     with torch.no_grad():
-        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
-    
-        layers[0] = {"t": options["t"], "eps": eps}
         t = torch.zeros_like(target)
 
         for i in range(len(wavelengths)):
+            # Build layers
+            eps =  options["mat 2"][i] + (options["mat 1"] - options["mat 2"][i])*(1 - design)
+            layers[0] = {"t": options["t"], "eps": eps}
+            options["lam"] = wavelengths[i]
+
             t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
-                                           geom, sim_dtype)
+                                        geom, sim_dtype)
             if pol == "s":
-                t[i] = t_s**2
+                t[i] = t_s
             elif pol == "p":
-                t[i] = t_p**2
+                t[i] = t_p
             else:
                 raise Exception("Invalid polarisation")
 

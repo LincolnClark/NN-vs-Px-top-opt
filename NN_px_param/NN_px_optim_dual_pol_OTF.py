@@ -81,7 +81,7 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
     
-    gamma = design.detach()
+    gamma = options["NN px fact"] * design.detach()
 
     # Velocity and momentum for ADAM
     mt = torch.zeros_like(gamma)

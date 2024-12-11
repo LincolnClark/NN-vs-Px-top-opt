@@ -118,8 +118,8 @@ def compare_performances_dual_pol_spectral(NNts, NNtp, NNpxts, NNpxtp, LMpxts, L
 
     ax1.set_title("s polarisation")
     ax2.set_title("p polarisation")
-    ax1.set_xlabel("Angle of incidence (deg)")
-    ax2.set_xlabel("Angle of incidence (deg)")
+    ax1.set_xlabel("Wavelength (nm)")
+    ax2.set_xlabel("Wavelength (nm)")
     ax1.set_ylabel("Transmittance")
     ax1.legend()
     ax2.legend()
@@ -142,7 +142,7 @@ def compare_performances_single_pol_spectral(NNt, NNpxt, LMpxt, pxt, target, wav
         ax.scatter(wavelengths, LMpxt[i], label = f"LMpx {blur[i]}")
         ax.scatter(wavelengths, pxt[i], label = f"px {blur[i]}")
 
-    ax.set_xlabel("Angle of incidence (deg)")
+    ax.set_xlabel("Wavelength (nm)")
     ax.set_ylabel("Transmittance")
     ax.legend()
 
