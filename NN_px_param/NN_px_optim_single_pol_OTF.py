@@ -27,7 +27,7 @@ def cost_function(dens, options, angles, layers, target, pol, geom, sim_dtype):
     return torch.sqrt(cost/len(angles))
 
 def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo_dtype, device):
-    
+
     # Starting seed for random number generation
     torch.manual_seed(seed)
 
@@ -71,8 +71,7 @@ def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
     kappa_hist = []
     cost_hist = []
 
-    # NN Training
-    for t in range(options["num NN"]):
+    for t in range(options["num iterations"]):
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
                    options, angles, layers, target, pol, geom, sim_dtype)
 
@@ -83,14 +82,15 @@ def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
     x = torch.linspace(-options["Lx"]/2, options["Lx"]/2, options["nx"])
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
+    
+    gamma = design.detach()
+
     # Velocity and momentum for ADAM
     mt = torch.zeros_like(gamma)
     vt = torch.zeros_like(gamma)
 
-    gamma = design.detach()
-
-    iter = 0
-    while iter < options["num iterations"] - options["num NN"]:
+    iter = options["num NN"] - 1
+    while iter < options["num iterations"]:
 
         gamma.requires_grad_(True)
 
@@ -114,7 +114,8 @@ def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options, grad, mt, vt, iter, gamma)
+            gamma, mt, vt = update_with_adam(options["alpha NN px"], options["beta 1"], options["beta 2"], 
+                                             options["epsilon"], grad, mt, vt, iter, gamma)
 
             # Normalise gamma
             gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)

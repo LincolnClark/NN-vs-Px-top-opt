@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 
 import torcwa
 from utils.utils import *
-from NN_reparam.neural_network_architectures import NeuralNetwork
-from NN_reparam.neural_network_architectures import train_loop_dual_angle as train_loop
 
 def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dtype):
     # Build layers
@@ -23,7 +21,8 @@ def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dty
     cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
     return torch.sqrt(cost/len(angles))
 
-def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -46,55 +45,37 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
     x_axis = geom.x.cpu()
     y_axis = geom.y.cpu()
 
-    # Work out the shape of the input vector into NN
-    N, M = (options["N NN"], options["M NN"])
-    N, M = (options["N NN"], options["M NN"])
-    model = NeuralNetwork(N, M, options["ker size"],
-                          scale = options["scaling"],
-                          channels = options["channels"],
-                          offset = options["offset"],
-                          dense_channels = options["dense channels"]).to(device)
-
-    optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
-                                betas = [options["beta 1"],options["beta 2"]],
-                                eps = options["epsilon"])
-
-    # Input vector of zeros into the NN
-    X = torch.zeros(1, 1, N, M, device=device)
-
-    beta = options["beta increase factor"]**(torch.linspace(1, options["num iterations"], options["num iterations"], 
-                                                            device = device)/options["beta increase step"])
-
-    kappa_hist = []
-    cost_hist = []
-
-    # NN Training
-    for t in range(options["num NN"]):
-        train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
-                   options, angles, layers, targets, targetp, geom, sim_dtype)
-
-    model.eval()
-    design = model(X)
-
-    # LMpx training
+    # Starting guess using seed
     x = torch.linspace(-options["Lx"]/2, options["Lx"]/2, options["nx"])
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
+
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
-    
-    gamma = design.detach()
+    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 10
+    gamma = filter(gamma, 40, xx, yy, geo_dtype, device)
 
     # Velocity and momentum for ADAM
     mt = torch.zeros_like(gamma)
     vt = torch.zeros_like(gamma)
 
-    iter = options["num NN"] - 1
+    beta = options["beta increase factor"]**(torch.linspace(1, options["num iterations"], options["num iterations"], 
+                                                            device = device)/options["beta increase step"])
+
+    iter = 0
+    cost_hist = []
+    norm_kappa_hist = []
+
+    # Main optimisation loop
     while iter < options["num iterations"]:
+        #print(f"Iteration {iter+1}")
 
         gamma.requires_grad_(True)
 
         # Perform blurring
-        gamma_blur = filter(gamma, options["blur NN px"], xx, yy, geo_dtype, device)
-        kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
+        if options["blur radius"] is not None:
+            gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
+            kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
+        else:
+            kappa_norm = torch.special.expit(beta[iter] * gamma)
 
         cost = cost_function(kappa_norm, options, angles, layers, targets, targetp, geom, sim_dtype)
 
@@ -112,24 +93,27 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options["alpha NN px"], options["beta 1"], options["beta 2"], 
+            gamma, mt, vt = update_with_adam(options["alpha"], options["beta 1"], options["beta 2"], 
                                              options["epsilon"], grad, mt, vt, iter, gamma)
+
+            # Force symmetry
+            #gamma = (gamma + torch.fliplr(gamma))/2
 
             # Normalise gamma
             gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)
 
             # Update history
             cost_hist.append(cost.detach().cpu().numpy())
-            kappa_hist.append(kappa_norm.detach().cpu().numpy())
+            norm_kappa_hist.append(kappa_norm.detach().cpu().numpy())
+
+            #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
 
             iter = iter + 1
 
-    design = torch.special.expit(beta[-1] * gamma)
 
-    # Final performance
     # Evaluate final performance
     with torch.no_grad():
-        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
+        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - kappa_norm)
     
         layers[0] = {"t": options["t"], "eps": eps}
         ts = torch.zeros_like(targets)
@@ -140,4 +124,5 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
             ts[i] = t_s
             tp[i] = t_p
 
-    return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
+
+    return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

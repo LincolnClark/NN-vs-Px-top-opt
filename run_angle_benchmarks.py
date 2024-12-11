@@ -76,6 +76,8 @@ def save_results(NN, NNpx, LMpx, px, blur_level, csv_folder):
 
 if __name__ == "__main__":
 
+    #torch.use_deterministic_algorithms(True)
+
     result_folder = "./Benchmark_results/plots/"
     csv_folder = "./Benchmark_results/"
 

@@ -50,7 +50,7 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
 
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
-    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 10
+    gamma = torch.rand((options["nx"], options["ny"]), dtype = geo_dtype, device = device)
     gamma = filter(gamma, 40, xx, yy, geo_dtype, device)
 
     # Velocity and momentum for ADAM
@@ -59,6 +59,7 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
 
     beta = options["beta increase factor"]**(torch.linspace(1, options["num iterations"], options["num iterations"], 
                                                             device = device)/options["beta increase step"])
+    beta = 0.5*beta # scale beta down for the pixel approach
 
     iter = 0
     cost_hist = []
@@ -73,9 +74,9 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
         # Perform blurring
         if options["blur radius"] is not None:
             gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
-            kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
+            kappa_norm = projection(gamma_blur, beta[iter], 0.5, geo_dtype, device)
         else:
-            kappa_norm = torch.special.expit(beta[iter] * gamma)
+            kappa_norm = projection(gamma, beta[iter], 0.5, geo_dtype, device)
 
         cost = cost_function(kappa_norm, options, angles, layers, targets, targetp, geom, sim_dtype)
 
@@ -93,13 +94,12 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options, grad, mt, vt, iter, gamma)
+            gamma, mt, vt = update_with_adam(options["alpha"], options["beta 1"], options["beta 2"], 
+                                             options["epsilon"], grad, mt, vt, iter, gamma)
 
-            # Force symmetry
-            #gamma = (gamma + torch.fliplr(gamma))/2
-
-            # Normalise gamma
-            gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)
+            # Force BCs
+            gamma[gamma < 0] = 0
+            gamma[gamma > 1] = 1
 
             # Update history
             cost_hist.append(cost.detach().cpu().numpy())

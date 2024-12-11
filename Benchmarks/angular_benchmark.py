@@ -4,13 +4,13 @@ import pickle
 import numpy as np
 
 from NN_reparam.NN_optim_dual_pol_OTF import NN_optim_pol as NN_pol_dep
-from Pixel_param.LMpx_optim_dual_pol_OTF import pixel_optim_pol as LMpx_pol_dep
-from Pixel_param.px_optim_dual_pol_OTF import pixel_optim_pol as px_pol_dep
+from LMpx_param.LMpx_optim_dual_pol_OTF import pixel_optim_pol as LMpx_pol_dep
+from Px_param.px_optim_dual_pol_OTF import pixel_optim_pol as px_pol_dep
 from NN_px_param.NN_px_optim_dual_pol_OTF import NN_px_optim_pol as NN_px_pol_dep
 
 from NN_reparam.NN_optim_single_pol_OTF import NN_optim_pol as NN_no_pol
-from Pixel_param.LMpx_optim_single_pol_OTF import pixel_optim_pol as LMpx_no_pol
-from Pixel_param.px_optim_single_pol_OTF import pixel_optim_pol as px_no_pol
+from LMpx_param.LMpx_optim_single_pol_OTF import pixel_optim_pol as LMpx_no_pol
+from Px_param.px_optim_single_pol_OTF import pixel_optim_pol as px_no_pol
 from NN_px_param.NN_px_optim_single_pol_OTF import NN_px_optim_pol as NN_px_no_pol
 
 from utils.material import SiO2
@@ -72,6 +72,7 @@ def params(t, patterned_material, lam, period, blur):
             # ADAM optimiser settings
             "alpha": 0.03, # max step size
             "alpha NN": 0.001,
+            "alpha NN px": 0.02,
             "beta 1": 0.9, # decay rate of 1st moment
             "beta 2": 0.999, # decay rate of 2nd moment
             "epsilon": 1e-6 # factor to avoid divison by 0

@@ -96,7 +96,8 @@ def pixel_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options, grad, mt, vt, iter, gamma)
+            gamma, mt, vt = update_with_adam(options["alpha"], options["beta 1"], options["beta 2"], 
+                                             options["epsilon"], grad, mt, vt, iter, gamma)
 
             # Normalise gamma
             gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)

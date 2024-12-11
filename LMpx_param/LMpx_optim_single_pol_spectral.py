@@ -5,27 +5,27 @@ import matplotlib.pyplot as plt
 import torcwa
 from utils.utils import *
 
-def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
+def cost_function(dens, options, wavelengths, layers, target, pol, geom, sim_dtype):
     # Build layers
-    # TODO: Dispersion
     eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
     
     layers[0] = {"t": options["t"], "eps": eps}
-    ts = torch.zeros_like(targets)
-    tp = torch.zeros_like(targetp)
+    t = torch.zeros_like(target)
 
     for i in range(len(wavelengths)):
-        options["lam"] = wavelengths[i]
-
         t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                        geom, sim_dtype)
-        ts[i] = t_s ** 2
-        tp[i] = t_p ** 2
+        if pol == "s":
+            t[i] = t_s
+        elif pol == "p":
+            t[i] = t_p
+        else:
+            raise Exception("Invalid polarisation")
 
-    cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
+    cost = torch.sum((t - target) ** 2)
     return torch.sqrt(cost/len(wavelengths))
 
-def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def pixel_optim_pol(seed, wavelengths, target, pol, layers, options, sim_dtype, geo_dtype, device):
 
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -53,7 +53,7 @@ def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, s
     y = torch.linspace(-options["Ly"]/2, options["Ly"]/2, options["ny"])
 
     xx, yy = torch.meshgrid(x, y, indexing = "ij")
-    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 15
+    gamma = torch.randn((options["nx"], options["ny"]), dtype = geo_dtype, device = device) / 10
     gamma = filter(gamma, 40, xx, yy, geo_dtype, device)
 
     # Velocity and momentum for ADAM
@@ -74,13 +74,13 @@ def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, s
         gamma.requires_grad_(True)
 
         # Perform blurring
-        gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
+        if options["blur radius"] is not None:
+            gamma_blur = filter(gamma, options["blur radius"], xx, yy, geo_dtype, device)
+            kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
+        else:
+            kappa_norm = torch.special.expit(beta[iter] * gamma)
 
-        kappa_norm = torch.special.expit(beta[iter] * gamma_blur)
-        
-        #kappa_norm = projection(gamma_blur, beta[iter], 0.5, geo_dtype, device)
-        #kappa_norm = projection(gamma, beta[iter], 0.5, geo_dtype, device)
-        cost = cost_function(kappa_norm, options, wavelengths, layers, targets, targetp, geom, sim_dtype)
+        cost = cost_function(kappa_norm, options, wavelengths, layers, target, pol, geom, sim_dtype)
 
         # Work out gradient of cost function w.r.t density with backpropagation
         cost.backward()
@@ -96,10 +96,8 @@ def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, s
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options, grad, mt, vt, iter, gamma)
-
-            # Force symmetry
-            #gamma = (gamma + torch.fliplr(gamma))/2
+            gamma, mt, vt = update_with_adam(options["alpha"], options["beta 1"], options["beta 2"], 
+                                             options["epsilon"], grad, mt, vt, iter, gamma)
 
             # Normalise gamma
             gamma = (gamma - torch.mean(gamma))/torch.sqrt(torch.var(gamma) + 1e-5)
@@ -108,8 +106,6 @@ def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, s
             cost_hist.append(cost.detach().cpu().numpy())
             norm_kappa_hist.append(kappa_norm.detach().cpu().numpy())
 
-            #print(f"cost: {cost.detach().cpu():.5f}\n-------------------------------")
-
             iter = iter + 1
 
     # Evaluate final performance
@@ -117,16 +113,16 @@ def pixel_optim_spectral(seed, wavelengths, targets, targetp, layers, options, s
         eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - kappa_norm)
     
         layers[0] = {"t": options["t"], "eps": eps}
-        ts = torch.zeros_like(targets)
-        tp = torch.zeros_like(targetp)
+        t = torch.zeros_like(target)
 
         for i in range(len(wavelengths)):
-            options["lam"] = wavelengths[i]
-
             t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
-                                        geom, sim_dtype)
-            ts[i] = t_s ** 2
-            tp[i] = t_p ** 2
+                                           geom, sim_dtype)
+            if pol == "s":
+                t[i] = t_s**2
+            elif pol == "p":
+                t[i] = t_p**2
+            else:
+                raise Exception("Invalid polarisation")
 
-
-    return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
+    return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, t.detach().cpu().numpy()

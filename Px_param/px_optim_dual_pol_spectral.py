@@ -5,25 +5,28 @@ import matplotlib.pyplot as plt
 import torcwa
 from utils.utils import *
 
-def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dtype):
+def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
     # Build layers
+    # TODO: Dispersion
     eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
     
     layers[0] = {"t": options["t"], "eps": eps}
     ts = torch.zeros_like(targets)
     tp = torch.zeros_like(targetp)
-    for i in range(len(angles)):
-        t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+
+    for i in range(len(wavelengths)):
+        options["lam"] = wavelengths[i]
+
+        t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                        geom, sim_dtype)
-        ts[i] = t_s
-        tp[i] = t_p
+        ts[i] = t_s ** 2
+        tp[i] = t_p ** 2
 
     cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
-    return torch.sqrt(cost/len(angles))
+    return torch.sqrt(cost/len(wavelengths))
 
-def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def pixel_optim_pol(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
 
-    
     # Starting seed for random number generation
     torch.manual_seed(seed)
 
@@ -78,7 +81,7 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
         else:
             kappa_norm = projection(gamma, beta[iter], 0.5, geo_dtype, device)
 
-        cost = cost_function(kappa_norm, options, angles, layers, targets, targetp, geom, sim_dtype)
+        cost = cost_function(kappa_norm, options, wavelengths, layers, targets, targetp, geom, sim_dtype)
 
         # Work out gradient of cost function w.r.t density with backpropagation
         cost.backward()
@@ -94,7 +97,8 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
                 plt.show()
                 
             # Update density with ADAM
-            gamma, mt, vt = update_with_adam(options, grad, mt, vt, iter, gamma)
+            gamma, mt, vt = update_with_adam(options["alpha"], options["beta 1"], options["beta 2"], 
+                                             options["epsilon"], grad, mt, vt, iter, gamma)
 
             # Force BCs
             gamma[gamma < 0] = 0
@@ -116,11 +120,14 @@ def pixel_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
         layers[0] = {"t": options["t"], "eps": eps}
         ts = torch.zeros_like(targets)
         tp = torch.zeros_like(targetp)
-        for i in range(len(angles)):
-            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
-                                        geom, sim_dtype)
-            ts[i] = t_s
-            tp[i] = t_p
+
+        for i in range(len(wavelengths)):
+            options["lam"] = wavelengths[i]
+
+            t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
+                                           geom, sim_dtype)
+            ts[i] = t_s ** 2
+            tp[i] = t_p ** 2
 
 
     return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

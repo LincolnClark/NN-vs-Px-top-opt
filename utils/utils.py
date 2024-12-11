@@ -13,19 +13,6 @@ def ramp(num_iter, start, end, device):
 
     return ramp
 
-def gen_prewitt_ker(nx, ny, dtype, device):
-    # Generate Robustness Kernels - Prewitt Operators
-    kx = torch.tensor([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], 
-                        dtype = dtype, device = device)
-    ky = torch.transpose(kx, 0, 1)
-    pad = ((ny - 3)//2, (ny - 3)//2 + (ny - 3)%2,
-            (nx - 3)//2, (nx - 3)//2 + (nx - 3)%2)
-    kx = torch.nn.functional.pad(kx, pad)
-    ky = torch.nn.functional.pad(ky, pad)
-    kx_FFT = FFT(kx)
-    ky_FFT = FFT(ky)
-    return kx_FFT, ky_FFT
-
 #===========================================================================
 # Calculate amplitude transmittance for an angle
 #===========================================================================
@@ -114,34 +101,6 @@ def filter(A, r, xx, yy, dtype, device):
 
     return torch.real(kap) / torch.sum(w).item()
 
-#def get_edges(density, dtype, device):
-#
-#    # Prewitt Operators
-#    kx = torch.tensor([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], 
-#                      dtype = dtype, device = device)
-#    ky = torch.transpose(kx, 0, 1)
-#    kx = kx.reshape(1, 1, 3, 3)
-#    ky = ky.reshape(1, 1, 3, 3)
-#
-#    # Perform convolutions
-#    bias = torch.tensor([0], dtype = dtype, device = device)
-#    conv_x = torch.nn.Conv2d(in_channels = 1, out_channels = 1, 
-#                             kernel_size = 3, bias = False, 
-#                             padding = "same", padding_mode = "replicate")
-#    conv_x.weight = torch.nn.Parameter(kx)
-#    conv_x.bias = torch.nn.Parameter(bias)
-#    conv_y = torch.nn.Conv2d(in_channels = 1, out_channels = 1, 
-#                             kernel_size = 3, bias = False, 
-#                             padding = "same", padding_mode = "replicate")
-#    conv_y.weight = torch.nn.Parameter(ky)
-#    conv_y.bias = torch.nn.Parameter(bias)
-#    edges_x = conv_x(density.reshape(1, 1, density.shape[0], density.shape[1]))
-#    edges_y = conv_y(density.reshape(1, 1, density.shape[0], density.shape[1]))
-#
-#    edges = torch.sqrt(edges_x[0, 0, :, :]**2 + edges_y[0, 0, :, :]**2)
-#
-#    return edges
-
 def FFT(A):
     """Fourier transform of array A"""
     return torch.fft.fftshift(torch.fft.fft2(torch.fft.fftshift(A)))
@@ -150,40 +109,14 @@ def IFFT(A):
     """Inverse Fourier transform of array A"""
     return torch.fft.ifftshift(torch.fft.ifft2(torch.fft.ifftshift(A)))
 
-def get_edges(density, kx_FFT, ky_FFT, dtype, device):
-    """Perform edge detection
-    INPUTS:
-    density - blurred density
-    kx_FFT - FFT of x-edge detection kernel
-    ky_FFT - FFT of y-edge detection kernel
-    dtype - geometry data type
-    device - pytorch device
-    """
-
-    dens_FFT = FFT(density)
-
-    edge_x = torch.abs(IFFT(kx_FFT * dens_FFT))
-    edge_y = torch.abs(IFFT(ky_FFT * dens_FFT))
-
-    edges = torch.sqrt(edge_x**2 + edge_y**2)
-
-    return edges
-
 #===========================================================================
 # Optimiser
 #===========================================================================
 
-def update_with_adam(optim_options, gt, mt, vt, t, params):
+def update_with_adam(alpha, beta1, beta2, epsilon, gt, mt, vt, t, params):
 
     """https://arxiv.org/abs/1412.6980"""
     t = t + 1
-
-    # Parameters
-    alpha = optim_options["alpha"]
-    #alpha = alpha_max/2 * np.cos(np.pi/optim_options["num iterations"] * (t-1)) + alpha_max/2
-    beta1 = optim_options["beta 1"]
-    beta2 = optim_options["beta 2"]
-    epsilon = optim_options["epsilon"]
 
     # Compute biased moments
     mtn = beta1*mt + (1-beta1)*gt
