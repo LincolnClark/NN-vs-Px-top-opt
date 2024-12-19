@@ -82,7 +82,7 @@ if __name__ == "__main__":
     csv_folder = "./Benchmark_results/"
 
     # Spectral Benchmarks
-    N_WL = 21
+    N_WL = 15
     
     # Real benchmark set
     """"""

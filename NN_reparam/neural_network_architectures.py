@@ -45,7 +45,8 @@ class UpsampleBlock(torch.nn.Module):
 class NeuralNetwork(nn.Module):
     def __init__(self, n, m, ker_size = 5,
                  scale = [1, 2, 2, 2, 2, 1], channels = [256, 128, 64, 32, 16, 1],
-                 offset = [True, True, True, True, True, True], dense_channels = 1):
+                 offset = [True, True, True, True, True, True], dense_channels = 1,
+                 blur = None, device = "cuda"):
         super().__init__()
 
         modules = [RandInput(n*m),
@@ -65,6 +66,18 @@ class NeuralNetwork(nn.Module):
             
             modules.append(UpsampleBlock(chan, channels[i], scale[i], ker_size, tuple(shape), offset[i]))
 
+        self.blur = blur
+        if blur is not None:
+            # Create kernel
+            x = torch.linspace(-1, 1, blur)
+            y = torch.linspace(-1, 1, blur)
+            xx, yy = torch.meshgrid(x, y, indexing = "xy")
+            w = 1 - torch.sqrt(xx**2 + yy**2)
+            w[w < 0] = 0
+            w = torch.reshape(w, (1, 1, blur, blur))
+            self.blur_kernel = w
+            print(self.blur_kernel.device)
+
         self.nn_modules = nn.ModuleList(modules)
         self.n_blocks = len(modules)
 
@@ -83,6 +96,10 @@ class NeuralNetwork(nn.Module):
 
         for i in range(2, self.n_blocks): # Convolution blocks
             x = self.nn_modules[i](x)
+
+        if self.blur is not None:
+            x = nn.functional.pad(x, (self.blur//2, self.blur//2, self.blur//2, self.blur//2), mode = "circular")
+            x = nn.functional.conv2d(x, self.blur_kernel, bias = None)
 
         x = x[0, 0, :, :]
 

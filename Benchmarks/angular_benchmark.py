@@ -17,7 +17,7 @@ from utils.material import SiO2
 from utils.plot_compare import *
 from utils.measurement import length_scale, convergence_time, binarisation_level
 
-def params(t, patterned_material, lam, period, blur):
+def params(t, patterned_material, lam, period, blur, blur2):
     device = (
         "cuda"
         if torch.cuda.is_available()
@@ -52,15 +52,15 @@ def params(t, patterned_material, lam, period, blur):
             # NN options
             "ker size" : 5,
             "channels": [128, 64, 32, 16, 1],
-            "dense channels": 16,
+            "dense channels": 32,
             "scaling": [1, 2, 2, 3, 1],
-            "offset": [True, True, True, False, False],
+            "offset": [True, True, True, True, False],
             "N NN": 20,
             "M NN": 20,
 
             # Optimisation settings
             "num iterations": 300,
-            "num NN": 150,
+            "num NN": 250,
             "NN px fact": 0.5,
             "beta increase factor": 1.3,
             "beta increase step": 20, # Number of iterations between thresholding increases
@@ -68,6 +68,7 @@ def params(t, patterned_material, lam, period, blur):
 
             # Robustness options
             "blur radius": blur,
+            "NN blur": 5,
             "blur NN px": 30,
 
             # ADAM optimiser settings
@@ -95,7 +96,7 @@ def identity_OTF(angles, val):
     return val * torch.ones(angles.shape)
 
 def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets, targetp, 
-                                    period, layers, label, res_folder, blur = [None], plot = True):
+                                    period, layers, label, res_folder, blur = [None], blur2 = [None], plot = True):
     """
     lam - wavelength in free space (nm)
     patterend_material - Material class for patterned material
@@ -110,7 +111,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
     blur - list of different blurring radii to use
     """
 
-    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur)
+    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur, blur2)
 
     # Neural Network
     t = time.time()
@@ -244,7 +245,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
 
 
 def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol, 
-                              period, layers, label, res_folder, blur = [None], plot = True):
+                              period, layers, label, res_folder, blur = [None], blur2 = [None], plot = True):
     """
     lam - wavelength in free space (nm)
     patterend_material - Material class for patterned material
@@ -259,7 +260,7 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
     blur - list of different blurring radii to use
     """
 
-    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur)
+    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur, blur2)
 
     # Neural Network
     t = time.time()

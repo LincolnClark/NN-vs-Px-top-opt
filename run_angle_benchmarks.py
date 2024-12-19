@@ -224,6 +224,35 @@ if __name__ == "__main__":
                                                   blur_level)
             # Save benchmark results to dictionary
             add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "s constant, p quadratic", blur_level, lams[i], na, periods[i])
+        
+    # Update results csv
+    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
+
+    # ===================================================================================================================
+    # Complicated structures
+    print(f"Running Angular Bandpass simulation")
+    lams = [1550]
+    mats = [aSi]
+    thicknesses = [550]
+    periods = [(1500, 1500)]
+    labels = ["1550nm_aSi_ang_bandpass"]
+
+    num_aperture = [0.15]
+    blur_level = [None, 45]
+    
+    for i in range(len(lams)):
+
+        # Determine the target OTFs
+        angles = torch.linspace(-10, 10, 11)
+        target = torch.zeros_like(angles)
+        target[torch.logical_and(angles >= 2, angles <= 5)] = 1.0
+
+        res = run_pol_ind_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target,
+                                        "s", periods[i], [None], 
+                                        f"OTF_s_pol_{labels[i]}_ang_bandpass", result_folder, 
+                                        blur_level)
+        # Save benchmark results to dictionary
+        add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "s polarisation", blur_level, lams[i], 0.17, periods[i])
 
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)

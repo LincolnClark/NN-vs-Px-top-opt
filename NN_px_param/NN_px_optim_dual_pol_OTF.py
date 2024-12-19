@@ -53,7 +53,9 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
                           scale = options["scaling"],
                           channels = options["channels"],
                           offset = options["offset"],
-                          dense_channels = options["dense channels"]).to(device)
+                          dense_channels = options["dense channels"],
+                          blur = options["NN blur"],
+                          device = device).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
                                 betas = [options["beta 1"],options["beta 2"]],

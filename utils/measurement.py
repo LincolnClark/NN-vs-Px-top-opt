@@ -18,7 +18,7 @@ def length_scale(design, px_size):
     Using this paper: https://doi.org/10.1364/JOSAB.506412
     """
 
-    min_width, min_spacing = imageruler.minimum_length_scale(design, periodic = (True, True))
+    min_width, min_spacing = imageruler.minimum_length_scale(design, periodic = (True, True), ignore_scheme=imageruler.IgnoreScheme.LARGE_FEATURE_EDGES)
     
     return min_width * px_size, min_spacing * px_size
 

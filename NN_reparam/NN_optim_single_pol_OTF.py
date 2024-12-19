@@ -56,7 +56,9 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
                           scale = options["scaling"],
                           channels = options["channels"],
                           offset = options["offset"],
-                          dense_channels = options["dense channels"]).to(device)
+                          dense_channels = options["dense channels"],
+                          blur = options["NN blur"],
+                          device = device).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
                                 betas = [options["beta 1"],options["beta 2"]],
