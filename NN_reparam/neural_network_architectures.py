@@ -69,14 +69,13 @@ class NeuralNetwork(nn.Module):
         self.blur = blur
         if blur is not None:
             # Create kernel
-            x = torch.linspace(-1, 1, blur)
-            y = torch.linspace(-1, 1, blur)
+            x = torch.linspace(-1, 1, blur, device = device)
+            y = torch.linspace(-1, 1, blur, device = device)
             xx, yy = torch.meshgrid(x, y, indexing = "xy")
             w = 1 - torch.sqrt(xx**2 + yy**2)
             w[w < 0] = 0
             w = torch.reshape(w, (1, 1, blur, blur))
             self.blur_kernel = w
-            print(self.blur_kernel.device)
 
         self.nn_modules = nn.ModuleList(modules)
         self.n_blocks = len(modules)
