@@ -60,7 +60,7 @@ def params(t, patterned_material, lam, period, blur, blur2):
 
             # Optimisation settings
             "num iterations": 300,
-            "num NN": 250,
+            "num NN": 225,
             "NN px fact": 0.5,
             "beta increase factor": 1.3,
             "beta increase step": 20, # Number of iterations between thresholding increases
