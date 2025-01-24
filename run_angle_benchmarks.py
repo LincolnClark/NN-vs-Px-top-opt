@@ -37,7 +37,7 @@ def add_results_to_dicts(NNdict, NNpxdict, LMpxdict, pxdict, results, label, blu
 
     # Do pixel based results
     for i in range(len(blur)):
-        LMpxdict[i]["Label"].append(f"LMpx {blur[i]}nm blur")
+        LMpxdict[i]["Label"].append(f"LMpx {blur[i]}% blur")
         LMpxdict[i]["Benchmark"].append(label)
         LMpxdict[i]["Wavelength (nm)"].append(wl)
         LMpxdict[i]["NA"].append(na)
@@ -49,7 +49,7 @@ def add_results_to_dicts(NNdict, NNpxdict, LMpxdict, pxdict, results, label, blu
         LMpxdict[i]["Px (nm)"].append(period[0])
         LMpxdict[i]["Py (nm)"].append(period[1])
 
-        pxdict[i]["Label"].append(f"px {blur[i]}nm blur")
+        pxdict[i]["Label"].append(f"px {blur[i]}% blur")
         pxdict[i]["Benchmark"].append(label)
         pxdict[i]["Wavelength (nm)"].append(wl)
         pxdict[i]["NA"].append(na)
@@ -81,7 +81,6 @@ if __name__ == "__main__":
     result_folder = "./Benchmark_results/plots/"
     csv_folder = "./Benchmark_results/"
 
-    # OTF Benchmarks
     N_ANGLES = 5
     
     """# ========================================================================================================
@@ -92,7 +91,7 @@ if __name__ == "__main__":
     periods = [(530, 530), (600, 600), (650, 650), (860, 860), (1000, 1000)]
     labels = ["800nm_aSi", "900nm_aSi", "980nm_aSi", "1300nm_aSi", "1550nm_aSi"]
     num_aperture = [0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
-    blur_level = [None, 0.01, 0.05, 0.1] """
+    blur_level = [None, 0.01, 0.05, 0.15] """
 
     # ========================================================================================================
     # Test set

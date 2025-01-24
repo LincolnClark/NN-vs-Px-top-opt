@@ -29,6 +29,7 @@ def plot_final_design(design, label, filename):
                    shading = "auto", cmap = "gist_gray")
     ax.set_title(label)
     ax.axis("off")
+    ax.set_aspect(1)
 
     plt.savefig(filename)
     plt.close()
