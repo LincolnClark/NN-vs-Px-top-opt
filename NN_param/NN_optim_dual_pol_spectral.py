@@ -4,26 +4,29 @@ import matplotlib.pyplot as plt
 
 import torcwa
 from utils.utils import *
-from NN_reparam.neural_network_architectures import NeuralNetwork
-from NN_reparam.neural_network_architectures import train_loop_dual_angle as train_loop
+from utils.neural_network_architectures import NeuralNetwork
+from utils.neural_network_architectures import train_loop_dual_spectral as train_loop
 
-def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dtype):
-    # Build layers
-    eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
-    
-    layers[0] = {"t": options["t"], "eps": eps}
+def cost_function(dens, options, wavelengths, layers, targets, targetp, geom, sim_dtype):
     ts = torch.zeros_like(targets)
     tp = torch.zeros_like(targetp)
-    for i in range(len(angles)):
-        t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+
+    for i in range(len(wavelengths)):
+
+        # Build layers
+        eps =  options["mat 2"][i] + (options["mat 1"] - options["mat 2"][i])*(1 - dens)
+        layers[0] = {"t": options["t"], "eps": eps}
+        options["lam"] = wavelengths[i]
+
+        t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                        geom, sim_dtype)
-        ts[i] = t_s
-        tp[i] = t_p
+        ts[i] = t_s ** 2
+        tp[i] = t_p ** 2
 
     cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
-    return torch.sqrt(cost/len(angles))
+    return torch.sqrt(cost/len(wavelengths))
 
-def NN_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
+def NN_optim_pol(seed, wavelengths, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -73,25 +76,26 @@ def NN_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype
         #print(f"Iteration {t+1}")
 
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
-                   options, angles, layers, targets, targetp, geom, sim_dtype)
+                   options, wavelengths, layers, targets, targetp, geom, sim_dtype)
     #print("Done!")
 
     model.eval()
     design = model(X)
     design = torch.special.expit(beta[-1] * design)
 
-    # Final performance
     # Evaluate final performance
     with torch.no_grad():
-        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
-    
-        layers[0] = {"t": options["t"], "eps": eps}
         ts = torch.zeros_like(targets)
         tp = torch.zeros_like(targetp)
-        for i in range(len(angles)):
-            t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
+        for i in range(len(wavelengths)):
+            # Build layers
+            eps =  options["mat 2"][i] + (options["mat 1"] - options["mat 2"][i])*(1 - design)
+            layers[0] = {"t": options["t"], "eps": eps}
+            options["lam"] = wavelengths[i]
+
+            t_s, t_p = trans_at_angle_comp(layers, options["theta"], options["phi"], options, 
                                         geom, sim_dtype)
-            ts[i] = t_s
-            tp[i] = t_p
+            ts[i] = t_s ** 2
+            tp[i] = t_p ** 2
 
     return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

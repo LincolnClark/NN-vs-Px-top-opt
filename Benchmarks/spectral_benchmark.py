@@ -3,15 +3,15 @@ import time
 import numpy as np
 import pickle
 from utils.material import SiO2
-from utils.plot_compare import *
+from utils.plotting import *
 from utils.measurement import length_scale, convergence_time
 
 from Px_param.px_optim_single_pol_spectral import pixel_optim_pol as px_no_pol
 from Px_param.px_optim_dual_pol_spectral import pixel_optim_pol as px_pol_dep
 from LMpx_param.LMpx_optim_single_pol_spectral import pixel_optim_pol as LMpx_no_pol
 from LMpx_param.LMpx_optim_dual_pol_spectral import pixel_optim_pol as LMpx_pol_dep
-from NN_reparam.NN_optim_single_pol_spectral import NN_optim_pol as NN_no_pol
-from NN_reparam.NN_optim_dual_pol_spectral import NN_optim_pol as NN_pol_dep
+from NN_param.NN_optim_single_pol_spectral import NN_optim_pol as NN_no_pol
+from NN_param.NN_optim_dual_pol_spectral import NN_optim_pol as NN_pol_dep
 from NN_px_param.NN_px_optim_single_pol_spectral import NN_px_optim_pol as NN_px_no_pol
 from NN_px_param.NN_px_optim_dual_pol_spectral import NN_px_optim_pol as NN_px_pol_dep
 

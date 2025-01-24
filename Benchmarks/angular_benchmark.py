@@ -3,21 +3,21 @@ import time
 import pickle
 import numpy as np
 
-from NN_reparam.NN_optim_dual_pol_OTF import NN_optim_pol as NN_pol_dep
+from NN_param.NN_optim_dual_pol_OTF import NN_optim_pol as NN_pol_dep
 from LMpx_param.LMpx_optim_dual_pol_OTF import pixel_optim_pol as LMpx_pol_dep
 from Px_param.px_optim_dual_pol_OTF import pixel_optim_pol as px_pol_dep
 from NN_px_param.NN_px_optim_dual_pol_OTF import NN_px_optim_pol as NN_px_pol_dep
 
-from NN_reparam.NN_optim_single_pol_OTF import NN_optim_pol as NN_no_pol
+from NN_param.NN_optim_single_pol_OTF import NN_optim_pol as NN_no_pol
 from LMpx_param.LMpx_optim_single_pol_OTF import pixel_optim_pol as LMpx_no_pol
 from Px_param.px_optim_single_pol_OTF import pixel_optim_pol as px_no_pol
 from NN_px_param.NN_px_optim_single_pol_OTF import NN_px_optim_pol as NN_px_no_pol
 
 from utils.material import SiO2
-from utils.plot_compare import *
+from utils.plotting import *
 from utils.measurement import length_scale, convergence_time, binarisation_level
 
-def params(t, patterned_material, lam, period, blur, blur2):
+def params(t, patterned_material, lam, period, blur):
     device = (
         "cuda"
         if torch.cuda.is_available()
@@ -96,32 +96,60 @@ def identity_OTF(angles, val):
     return val * torch.ones(angles.shape)
 
 def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets, targetp, 
-                                    period, layers, label, res_folder, blur = [None], blur2 = [None], plot = True):
+                                    period, layers, label, res_folder, blur_frac = [None]):
     """
-    lam - wavelength in free space (nm)
-    patterend_material - Material class for patterned material
-    t - thickness of patterned layer (nm)
-    angles - angles to evaluate OTF at (deg)
-    targets - target OTF for s polarised light
-    target- - target OTF for p polarised light
-    period - (Lx, Ly) period along x and y
-    layers - list of layers, [None] for no extra layers
-    label - string labelling current benchmark
-    res_folder - string for filepath to save in
-    blur - list of different blurring radii to use
+    Perform optimisations for benchmark that optimises for both s and p polarised light
+    ARGUMENTS:
+        lam - wavelength in free space (nm)
+        patterend_material - Material class for patterned material
+        t - thickness of patterned layer (nm)
+        angles - angles to evaluate OTF at (deg)
+        targets - target OTF for s polarised light
+        targetp- - target OTF for p polarised light
+        period - (Lx, Ly) period along x and y
+        layers - list of layers, [None] for no extra layers
+        label - string labelling current benchmark
+        res_folder - string for filepath to save in
+        blur_frac - list of amount of blurring (fraction of wl)
+    RETURNS:
+        Benchmark parameters, NN, NNpx, LMpx, px
     """
 
-    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur, blur2)
+    # Convert blur from % of wl to nm
+    blur = [i * lam if i is not None else None for i in blur_frac]
 
-    # Neural Network
+    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur)
+
+    # ========================================================================================================
+    # Run neural network optimisation
     t = time.time()
     NN_des, NN_cost, NN_des_hist, NN_ts, NN_tp  = NN_pol_dep(seed, lam, angles, 
                                                              targets, targetp, 
                                                              layers, options, 
                                                              sim_dtype, geo_dtype, device)
     NN_time = time.time() - t
+    plot_final_design(NN_des, "Neural Network", f"{res_folder}{label}_NN_design.png")
+    animate_history(NN_des_hist, f"{res_folder}{label}_NN_ani.gif")
+    plot_otf_perfomance_dual_pol(NN_ts, NN_tp, targets, targetp, angles, "NN Optimisation",
+                                 f"{res_folder}{label}_NN_performance.png")
+    plot_cost(NN_cost, "NN Optimisation", f"{res_folder}{label}_NN_cost_evolution.png")
 
-    # Latent matrix pixel optimisation
+    # ========================================================================================================
+    # Run neural network + pixel optimisation
+    t = time.time()
+    NN_px_des, NN_px_cost, NN_px_des_hist, NN_px_ts, NN_px_tp  = NN_px_pol_dep(seed, lam, angles, 
+                                                                               targets, targetp, 
+                                                                               layers, options, 
+                                                                               sim_dtype, geo_dtype, device)
+    NN_px_time = time.time() - t
+    plot_final_design(NN_px_des, "NN + px ", f"{res_folder}{label}_NNpx_design.png")
+    animate_history(NN_px_des_hist, f"{res_folder}{label}_NNpx_ani.gif")
+    plot_otf_perfomance_dual_pol(NN_px_ts, NN_px_tp, targets, targetp, angles, "NNpx Optimisation",
+                                 f"{res_folder}{label}_NNpx_performance.png")
+    plot_cost(NN_px_cost, "NNpx Optimisation", f"{res_folder}{label}_NNpx_cost_evolution.png")
+
+    # ========================================================================================================
+    # Run latent matrix pixel optimisation
     LMpx_times = []
     LMpx_designs = []
     LMpx_costs = []
@@ -143,7 +171,14 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
         LMpx_tss.append(LMpx_ts)
         LMpx_tps.append(LMpx_tp)
 
-    # Pixel optimisation
+        plot_final_design(LMpx_des, f"LMpx {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_LMpx_{bl}nm_design.png")
+        animate_history(LMpx_des_hist, f"{res_folder}{label}_LMpx_{bl}nm_ani.gif")
+        plot_otf_perfomance_dual_pol(LMpx_ts, LMpx_tp, targets, targetp, angles, f"LMpx {bl / lam * 100:.2f}% blur",
+                                     f"{res_folder}{label}_LMpx_{bl}nm_performance.png")
+        plot_cost(LMpx_cost, f"LMpx {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_LMpx_{bl}nm_cost_evolution.png")
+
+    # ========================================================================================================
+    # Run constrained pixel optimisation
     px_times = []
     px_designs = []
     px_costs = []
@@ -165,43 +200,19 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
         px_tss.append(px_ts)
         px_tps.append(px_tp)
 
-    # NN + pixel approach
-    t = time.time()
-    NN_px_des, NN_px_cost, NN_px_des_hist, NN_px_ts, NN_px_tp  = NN_px_pol_dep(seed, lam, angles, 
-                                                                               targets, targetp, 
-                                                                               layers, options, 
-                                                                               sim_dtype, geo_dtype, device)
-    NN_px_time = time.time() - t
+        plot_final_design(px_des, f"px {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_px_{bl}nm_design.png")
+        animate_history(px_des_hist, f"{res_folder}{label}_px_{bl}nm_ani.gif")
+        plot_otf_perfomance_dual_pol(px_ts, px_tp, targets, targetp, angles, f"px {bl / lam * 100:.2f}% blur",
+                                     f"{res_folder}{label}_px_{bl}nm_performance.png")
+        plot_cost(px_cost, f"px {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_px_{bl}nm_cost_evolution.png")
 
-
-    # Plots
-    if plot:
-        compare_cost(NN_cost, NN_px_cost, LMpx_costs, px_costs, blur, f"{res_folder}{label}_cost_compare.png")
-
-        plot_final_design(NN_des, "Neural Network", f"{res_folder}{label}_NN_design.png")
-        plot_final_design(NN_px_des, "NN + px ", f"{res_folder}{label}_NNpx_design.png")
-
-        for i in range(len(blur)):
-            plot_final_design(LMpx_designs[i], f"LMpx {blur[i]} nm blur", f"{res_folder}{label}_LMpx_blur{blur[i]}_design.png")
-            plot_final_design(px_designs[i], f"LMpx {blur[i]} nm blur", f"{res_folder}{label}_px_blur{blur[i]}_design.png")
-
-        compare_performances_dual_pol(NN_ts, NN_tp, NN_px_ts, NN_px_tp, LMpx_tss, LMpx_tps, px_tss, px_tps, targets, 
-                                    targetp, angles, blur, f"{res_folder}{label}_performance_compare.png")
-
-        animate_history(NN_des_hist, f"{res_folder}{label}_NN_ani.gif")
-        animate_history(NN_px_des_hist, f"{res_folder}{label}_NNpx_ani.gif")
-
-        for i in range(len(blur)):
-            animate_history(LMpx_des_hists[i], f"{res_folder}{label}_LMpx_ani_blur_{blur[i]}.gif")
-            animate_history(px_des_hists[i], f"{res_folder}{label}_px_ani_blur_{blur[i]}.gif")
-
+    # ========================================================================================================
     # Save everything into a pickle file
     with open(f"{res_folder}{label}_data.pickle", "wb") as file:
         pkl_data = {
             "blur": blur,
             "cost history": (NN_cost, NN_px_cost, LMpx_costs, px_costs),
             "final designs": (NN_des, NN_px_des, LMpx_designs, px_designs),
-            #"design history": (NN_des_hist, LMpx_des_hists, px_des_hists),
             "perf s pol": (NN_ts, NN_px_ts, LMpx_tss, px_tss),
             "perf p pol": (NN_tp, NN_px_ts, LMpx_tps, px_tps),
             "target s": targets,
@@ -210,6 +221,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
         }
         pickle.dump(pkl_data, file)
 
+    # ========================================================================================================
     # Calculate the benchmark parameters
     NN_final_cost = NN_cost[-1]
     NN_px_final_cost = NN_px_cost[-1]
@@ -245,32 +257,60 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
 
 
 def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol, 
-                              period, layers, label, res_folder, blur = [None], blur2 = [None], plot = True):
+                              period, layers, label, res_folder, blur_frac = [None]):
     """
-    lam - wavelength in free space (nm)
-    patterend_material - Material class for patterned material
-    t - thickness of patterned layer (nm)
-    angles - angles to evaluate OTF at (deg)
-    targets - target OTF for s polarised light
-    target- - target OTF for p polarised light
-    period - (Lx, Ly) period along x and y
-    layers - list of layers, [None] for no extra layers
-    label - string labelling current benchmark
-    res_folder - string for filepath to save in
-    blur - list of different blurring radii to use
+    Perform optimisations for benchmark that optimises for a single polarisation
+    ARGUMENTS:
+        lam - wavelength in free space (nm)
+        patterend_material - Material class for patterned material
+        t - thickness of patterned layer (nm)
+        angles - angles to evaluate OTF at (deg)
+        target- - target OTF
+        pol - "s" or "p"
+        period - (Lx, Ly) period along x and y
+        layers - list of layers, [None] for no extra layers
+        label - string labelling current benchmark
+        res_folder - string for filepath to save in
+        blur_frac - list of amount of blurring (fraction of wl)
+    RETURNS:
+        Benchmark parameters, NN, NNpx, LMpx, px
     """
 
-    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur, blur2)
+    # Convert blur from % of wl to nm
+    blur = [i * lam if i is not None else None for i in blur_frac]
 
-    # Neural Network
+    device, seed, options, sim_dtype, geo_dtype = params(t, patterned_material, lam, period, blur)
+
+    # ========================================================================================================
+    # Run neural network optimisation
     t = time.time()
-    NN_des, NN_cost, NN_des_hist, NN_t  = NN_no_pol(seed, lam, angles, 
+    NN_des, NN_cost, NN_des_hist, NN_t = NN_no_pol(seed, lam, angles, 
                                                     target, pol, 
                                                     layers, options, 
                                                     sim_dtype, geo_dtype, device)
     NN_time = time.time() - t
+    plot_final_design(NN_des, "Neural Network", f"{res_folder}{label}_NN_design.png")
+    animate_history(NN_des_hist, f"{res_folder}{label}_NN_ani.gif")
+    plot_otf_perfomance_single_pol(NN_t, target, angles, "NN Optimisation",
+                                 f"{res_folder}{label}_NN_performance.png")
+    plot_cost(NN_cost, "NN Optimisation", f"{res_folder}{label}_NN_cost_evolution.png")
 
-    # Latent matrix pixel optimisation
+    # ========================================================================================================
+    # Run neural network + pixel optimisation
+    t = time.time()
+    NN_px_des, NN_px_cost, NN_px_des_hist, NN_px_t = NN_px_no_pol(seed, lam, angles, 
+                                                                  target, pol, 
+                                                                  layers, options, 
+                                                                  sim_dtype, geo_dtype, device)
+    NN_px_time = time.time() - t
+    plot_final_design(NN_px_des, "NN + px ", f"{res_folder}{label}_NNpx_design.png")
+    animate_history(NN_px_des_hist, f"{res_folder}{label}_NNpx_ani.gif")
+    plot_otf_perfomance_dual_pol(NN_px_t, target, angles, "NNpx Optimisation",
+                                 f"{res_folder}{label}_NNpx_performance.png")
+    plot_cost(NN_px_cost, "NNpx Optimisation", f"{res_folder}{label}_NNpx_cost_evolution.png")
+
+    # ========================================================================================================
+    # Run latent matrix pixel optimisation
     LMpx_times = []
     LMpx_designs = []
     LMpx_costs = []
@@ -281,16 +321,23 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
         options["blur radius"] = bl
         t = time.time()
         LMpx_des, LMpx_cost, LMpx_des_hist, LMpx_t = LMpx_no_pol(seed, lam, angles, 
-                                                                            target, pol, 
-                                                                            layers, options, 
-                                                                            sim_dtype, geo_dtype, device)
+                                                                 target, pol, 
+                                                                 layers, options, 
+                                                                 sim_dtype, geo_dtype, device)
         LMpx_times.append(time.time() - t)
         LMpx_designs.append(LMpx_des)
         LMpx_costs.append(LMpx_cost)
         LMpx_des_hists.append(LMpx_des_hist)
         LMpx_ts.append(LMpx_t)
 
-    # Pixel optimisation
+        plot_final_design(LMpx_des, f"LMpx {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_LMpx_{bl}nm_design.png")
+        animate_history(LMpx_des_hist, f"{res_folder}{label}_LMpx_{bl}nm_ani.gif")
+        plot_otf_perfomance_dual_pol(LMpx_ts, LMpx_t, target, angles, f"LMpx {bl / lam * 100:.2f}% blur",
+                                     f"{res_folder}{label}_LMpx_{bl}nm_performance.png")
+        plot_cost(LMpx_cost, f"LMpx {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_LMpx_{bl}nm_cost_evolution.png")
+
+    # ========================================================================================================
+    # Run constrained pixel optimisation
     px_times = []
     px_designs = []
     px_costs = []
@@ -301,43 +348,22 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
         options["blur radius"] = bl
         t = time.time()
         px_des, px_cost, px_des_hist, px_t = px_no_pol(seed, lam, angles, 
-                                                               target, pol, 
-                                                               layers, options, 
-                                                               sim_dtype, geo_dtype, device)
+                                                       target, pol, 
+                                                       layers, options, 
+                                                       sim_dtype, geo_dtype, device)
         px_times.append(time.time() - t)
         px_designs.append(px_des)
         px_costs.append(px_cost)
         px_des_hists.append(px_des_hist)
         px_ts.append(px_t)
 
-    # NN + pixel approach
-    t = time.time()
-    NN_px_des, NN_px_cost, NN_px_des_hist, NN_px_t  = NN_px_no_pol(seed, lam, angles, 
-                                                                    target, pol, 
-                                                                    layers, options, 
-                                                                    sim_dtype, geo_dtype, device)
-    NN_px_time = time.time() - t
+        plot_final_design(px_des, f"px {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_px_{bl}nm_design.png")
+        animate_history(px_des_hist, f"{res_folder}{label}_px_{bl}nm_ani.gif")
+        plot_otf_perfomance_dual_pol(px_ts, px_t, target, angles, f"px {bl / lam * 100:.2f}% blur",
+                                     f"{res_folder}{label}_px_{bl}nm_performance.png")
+        plot_cost(px_cost, f"px {bl / lam * 100:.2f}% blur", f"{res_folder}{label}_px_{bl}nm_cost_evolution.png")
 
-    # Plots
-    if plot:
-        compare_cost(NN_cost, NN_px_cost, LMpx_costs, px_costs, blur, f"{res_folder}{label}_cost_compare.png")
-
-        plot_final_design(NN_des, "Neural Network", f"{res_folder}{label}_NN_design.png")
-        plot_final_design(NN_px_des, "NN + px ", f"{res_folder}{label}_NNpx_design.png")
-
-        for i in range(len(blur)):
-            plot_final_design(LMpx_designs[i], f"LMpx {blur[i]} nm blur", f"{res_folder}{label}_LMpx_blur{blur[i]}_design.png")
-            plot_final_design(px_designs[i], f"px {blur[i]} nm blur", f"{res_folder}{label}_px_blur{blur[i]}_design.png")
-
-        compare_performances_single_pol(NN_t, NN_px_t, LMpx_ts, px_ts, target, 
-                                        angles, blur, f"{res_folder}{label}_performance_compare.png")
-
-        animate_history(NN_des_hist, f"{res_folder}{label}_NN_ani.gif")
-        animate_history(NN_px_des_hist, f"{res_folder}{label}_NNpx_ani.gif")
-        for i in range(len(blur)):
-            animate_history(LMpx_des_hists[i], f"{res_folder}{label}_LMpx_ani_blur_{blur[i]}.gif")
-            animate_history(px_des_hists[i], f"{res_folder}{label}_px_ani_blur_{blur[i]}.gif")
-
+    # ========================================================================================================
     # Save everything into a pickle file
     with open(f"{res_folder}{label}_data.pickle", "wb") as file:
         pkl_data = {
@@ -351,6 +377,7 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
         }
         pickle.dump(pkl_data, file)
 
+    # ========================================================================================================
     # Calculate the benchmark parameters
     NN_final_cost = NN_cost[-1]
     NN_px_final_cost = NN_px_cost[-1]

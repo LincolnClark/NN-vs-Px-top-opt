@@ -84,18 +84,18 @@ if __name__ == "__main__":
     # OTF Benchmarks
     N_ANGLES = 5
     
+    """# ========================================================================================================
     # Real benchmark set
-    
     lams = [800, 900, 980, 1300, 1550]
     mats = [aSi, aSi, aSi, aSi, aSi]
     thicknesses = [250, 300, 330, 500, 550]
     periods = [(530, 530), (600, 600), (650, 650), (860, 860), (1000, 1000)]
     labels = ["800nm_aSi", "900nm_aSi", "980nm_aSi", "1300nm_aSi", "1550nm_aSi"]
     num_aperture = [0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
-    blur_level = [None, 30, 60, 90]
+    blur_level = [None, 0.01, 0.05, 0.1] """
 
+    # ========================================================================================================
     # Test set
-    """
     lams = [1550]
     mats = [aSi]
     thicknesses = [550]
@@ -103,8 +103,9 @@ if __name__ == "__main__":
     labels = ["1550nm_aSi"]
 
     num_aperture = [0.15]
-    blur_level = [None, 45]"""
+    blur_level = [None, 0.05]
 
+    # ========================================================================================================
     # Create dictionaries to store results
     results_dict = {
         "Label": [],
@@ -119,7 +120,6 @@ if __name__ == "__main__":
         "Min Feature size void (nm)": [],
         "Convergence time (# iterations)": [],
     }
-
     NN_res = copy.deepcopy(results_dict)
     NNpx_res = copy.deepcopy(results_dict)
     LMpx_res = [copy.deepcopy(results_dict) for i in blur_level]
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     )
     print(f"Using {dev} device")
 
+    # Run s polarisation only optimisations
     for i in range(len(lams)):
 
         for na in num_aperture:
@@ -153,6 +154,7 @@ if __name__ == "__main__":
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
 
+    # Run p polarisation only optimisation
     for i in range(len(lams)):
 
         for na in num_aperture:
@@ -171,6 +173,7 @@ if __name__ == "__main__":
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
 
+    # Run polarisation insensitive optimisation
     for i in range(len(lams)):
 
         for na in num_aperture:
@@ -190,6 +193,7 @@ if __name__ == "__main__":
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
 
+    # Run s polarisation quadratic, p polarisation constant optimisation
     for i in range(len(lams)):
 
         for na in num_aperture:
@@ -208,7 +212,8 @@ if __name__ == "__main__":
 
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
-            
+
+    # Run p polarisation quadratic, s polarisation constant optimisation       
     for i in range(len(lams)):
 
         for na in num_aperture:
@@ -238,7 +243,6 @@ if __name__ == "__main__":
     labels = ["1550nm_aSi_ang_bandpass"]
 
     num_aperture = [0.15]
-    blur_level = [None, 45]
     
     for i in range(len(lams)):
 

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 import torcwa
 from utils.utils import *
-from NN_reparam.neural_network_architectures import NeuralNetwork
-from NN_reparam.neural_network_architectures import train_loop_single_spectral as train_loop
+from utils.neural_network_architectures import NeuralNetwork
+from utils.neural_network_architectures import train_loop_single_spectral as train_loop
 
 def cost_function(dens, options, wavelengths, layers, target, pol, geom, sim_dtype):
     
