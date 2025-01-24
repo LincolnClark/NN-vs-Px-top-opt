@@ -54,7 +54,7 @@ def params(t, patterned_material, lam, period, blur):
             "channels": [128, 64, 32, 16, 1],
             "dense channels": 32,
             "scaling": [1, 2, 2, 3, 1],
-            "offset": [True, True, True, True, False],
+            "offset": [True, True, True, False, False],
             "N NN": 20,
             "M NN": 20,
 
@@ -68,8 +68,8 @@ def params(t, patterned_material, lam, period, blur):
 
             # Robustness options
             "blur radius": blur,
-            "NN blur": 5,
-            "blur NN px": 30,
+            "NN blur": None,
+            "blur NN px": 0.1 * lam,
 
             # ADAM optimiser settings
             "alpha": 0.03, # max step size
