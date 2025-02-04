@@ -2,7 +2,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 
 def plot_cost(cost, label, filename):
-    
+    """
+    Plot cost function as a function of iteration
+    INPUT:
+    cost - list of cost function values for each iterations
+    label - title for the plot
+    filename - filename to save the plot under
+    RETURNS: None
+    """
     plt.clf()
     plt.cla()
     fig, ax = plt.subplots(1, 1)
@@ -20,7 +27,14 @@ def plot_cost(cost, label, filename):
     return
 
 def plot_final_design(design, label, filename):
-
+    """
+    Plots the final design
+    INPUTS:
+    design - 2D array between 0 and 1 representing design
+    label - title for the plot
+    filename - filepath to save the plot under
+    RETURNS: None
+    """
     plt.clf()
     plt.cla()
     fig, ax = plt.subplots(1, 1)
@@ -42,7 +56,6 @@ def plot_otf_perfomance_dual_pol(ts, tp, targets, targetp, angles, label, filena
 
     ax1.scatter(angles, targets, color = "black", marker = "X", label = "Target")
     ax2.scatter(angles, targetp, color = "black", marker = "X", label = "Target")
-
     ax1.scatter(angles, ts, label = "Optimisation")
     ax2.scatter(angles, tp, label = "Optimisation")
     
@@ -71,7 +84,6 @@ def plot_otf_perfomance_single_pol(t, target, angles, label, filename):
     fig, ax = plt.subplots(1, 1, sharey = True)
 
     ax.scatter(angles, target, color = "black", marker = "X", label = "Target")
-
     ax.scatter(angles, t, label = "Optimisation")
     
     ax.legend()

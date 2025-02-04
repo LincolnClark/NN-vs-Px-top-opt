@@ -20,7 +20,7 @@ class Material:
         return
 
     def N(self, lam):
-        """Returns the complex valued refractive index as a function of wavelength"""
+        """Returns the complex valued refractive index as a function of wavelength. N = n + ik convention"""
         return self.n(lam) + j*self.k(lam)
     
     def eps(self, lam):
