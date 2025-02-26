@@ -128,12 +128,9 @@ def NN_px_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
 
             iter = iter + 1
 
-    design = torch.special.expit(beta[-1] * gamma)
-
-    # Final performance
     # Evaluate final performance
     with torch.no_grad():
-        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
+        eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - kappa_norm)
     
         layers[0] = {"t": options["t"], "eps": eps}
         t = torch.zeros_like(target)

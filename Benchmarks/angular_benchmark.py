@@ -215,14 +215,53 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
         plot_cost(px_cost, f"px {lab} blur", f"{res_folder}{label}_px_{lab}_cost_evolution.png")
 
     # ========================================================================================================
-    # Save everything into a pickle file
-    with open(f"{res_folder}{label}_data.pickle", "wb") as file:
+    # Save everything into pickle files
+    with open(f"{res_folder}{label}_NN_data.pickle", "wb") as file:
         pkl_data = {
             "blur": blur,
-            "cost history": (NN_cost, NN_px_cost, LMpx_costs, px_costs),
-            "final designs": (NN_des, NN_px_des, LMpx_designs, px_designs),
-            "perf s pol": (NN_ts, NN_px_ts, LMpx_tss, px_tss),
-            "perf p pol": (NN_tp, NN_px_ts, LMpx_tps, px_tps),
+            "cost history": NN_cost,
+            "final designs": NN_des,
+            "perf s pol": NN_ts,
+            "perf p pol": NN_tp,
+            "target s": targets,
+            "target p": targetp,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_NNpx_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": NN_px_cost,
+            "final designs":  NN_px_des,
+            "perf s pol": NN_px_ts,
+            "perf p pol": NN_px_ts,
+            "target s": targets,
+            "target p": targetp,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_LMpx_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": LMpx_costs,
+            "final designs": LMpx_designs,
+            "perf s pol": LMpx_tss,
+            "perf p pol": LMpx_tps,
+            "target s": targets,
+            "target p": targetp,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_px_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": px_costs,
+            "final designs": px_designs,
+            "perf s pol": px_tss,
+            "perf p pol": px_tps,
             "target s": targets,
             "target p": targetp,
             "angles": angles,
@@ -380,14 +419,50 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
         plot_cost(px_cost, f"px {lab} blur", f"{res_folder}{label}_px_{lab}_cost_evolution.png")
 
     # ========================================================================================================
-    # Save everything into a pickle file
-    with open(f"{res_folder}{label}_data.pickle", "wb") as file:
+    # Save everything into a pickle files
+    with open(f"{res_folder}{label}_NN_data.pickle", "wb") as file:
         pkl_data = {
             "blur": blur,
-            "cost history": (NN_cost, NN_px_cost, LMpx_costs, px_costs),
-            "final designs": (NN_des, NN_px_des, LMpx_designs, px_designs),
-            #"design history": (NN_des_hist, LMpx_des_hists, px_des_hists),
-            "perf": (NN_t, NN_px_t, LMpx_ts, px_ts),
+            "cost history": NN_cost,
+            "final designs": NN_des,
+            #"design history": NN_des_hist,
+            "perf": NN_t,
+            "target": target,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_NNpx_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": NN_px_cost,
+            "final designs": NN_px_des,
+            #"design history": NN_px_hists,
+            "perf": NN_px_t,
+            "target": target,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_LMpx_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": LMpx_costs,
+            "final designs": LMpx_designs,
+            #"design history": LMpx_des_hists,
+            "perf": LMpx_ts,
+            "target": target,
+            "angles": angles,
+        }
+        pickle.dump(pkl_data, file)
+
+    with open(f"{res_folder}{label}_px_data.pickle", "wb") as file:
+        pkl_data = {
+            "blur": blur,
+            "cost history": px_costs,
+            "final designs": px_designs,
+            #"design history": px_des_hists,
+            "perf": px_ts,
             "target": target,
             "angles": angles,
         }
