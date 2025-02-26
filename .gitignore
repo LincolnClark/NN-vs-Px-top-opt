@@ -2,5 +2,4 @@
 Benchmark_results/
 
 # Ignore all the cache folders
-__pycache__/
-*.pyc
+__pycache__/*
