@@ -1,5 +1,5 @@
 # Ignore the results folder
 Benchmark_results/
 
-# Ignore all the cache folders
+# Byte-compiled / optimized / DLL files
 __pycache__/*
