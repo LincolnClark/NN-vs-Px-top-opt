@@ -262,7 +262,7 @@ if __name__ == "__main__":
         # Determine the target OTFs
         angles = torch.linspace(-20, 20, 20)
         target = torch.zeros_like(angles)
-        target[torch.logical_and(angles >= 5, angles <= 10] = 1.0
+        target[torch.logical_and(angles >= 5, angles <= 10)] = 1.0
 
         res = run_pol_dependent_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target,
                                               target, periods[i], [None], 
