@@ -246,9 +246,9 @@ if __name__ == "__main__":
     for i in range(len(lams)):
 
         # Determine the target OTFs
-        angles = torch.linspace(-10, 10, 11)
+        angles = torch.linspace(-20, 20, 20)
         target = torch.zeros_like(angles)
-        target[torch.logical_and(angles >= 2, angles <= 5)] = 1.0
+        target[torch.logical_and(angles >= 5, angles <= 10)] = 1.0
 
         res = run_pol_ind_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target,
                                         "s", periods[i], [None], 
@@ -260,9 +260,9 @@ if __name__ == "__main__":
     for i in range(len(lams)):
 
         # Determine the target OTFs
-        angles = torch.linspace(-10, 10, 11)
+        angles = torch.linspace(-20, 20, 20)
         target = torch.zeros_like(angles)
-        target[torch.logical_and(angles >= 2, angles <= 5)] = 1.0
+        target[torch.logical_and(angles >= 5, angles <= 10] = 1.0
 
         res = run_pol_dependent_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target,
                                               target, periods[i], [None], 
