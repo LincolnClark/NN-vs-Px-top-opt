@@ -128,6 +128,11 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
 
     # Evaluate final performance
     with torch.no_grad():
+
+        # Binarise the final design
+        kappa_norm[kappa_norm > 0.5] = 1
+        kappa_norm[kappa_norm <= 0.5] = 0
+
         eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - kappa_norm)
     
         layers[0] = {"t": options["t"], "eps": eps}
@@ -138,5 +143,10 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
                                         geom, sim_dtype)
             ts[i] = t_s
             tp[i] = t_p
+
+        final_cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
+        final_cost = torch.sqrt(final_cost/len(angles))
+
+        cost_hist.append(final_cost.detach().cpu().numpy())
 
     return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

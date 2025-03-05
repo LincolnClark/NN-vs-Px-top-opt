@@ -81,6 +81,10 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
     design = model(X)
     design = torch.special.expit(beta[-1] * design)
 
+    # Binarise the final design
+    design[design > 0.5] = 1
+    design[design <= 0.5] = 0
+
     # Final performance
     # Evaluate final performance
     with torch.no_grad():
@@ -95,5 +99,11 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
                 t[i] = t_s
             elif pol == "p":
                 t[i] = t_p
+
+        # Final cost function evaluation
+        final_cost = torch.sum((t - target) ** 2)
+        final_cost = torch.sqrt(final_cost/len(angles))
+
+        cost_hist.append(final_cost)
 
     return design.detach().cpu().numpy(), cost_hist, kappa_hist, t.detach().cpu().numpy()
