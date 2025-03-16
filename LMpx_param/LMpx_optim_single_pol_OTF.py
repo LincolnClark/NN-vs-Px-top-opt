@@ -131,6 +131,6 @@ def pixel_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, 
         final_cost = torch.sum((t - target) ** 2)
         final_cost = torch.sqrt(final_cost/len(angles))
 
-        cost_hist.append(final_cost)
+        cost_hist.append(final_cost.detach().cpu().numpy())
 
     return kappa_norm.detach().cpu().numpy(), cost_hist, norm_kappa_hist, t.detach().cpu().numpy()

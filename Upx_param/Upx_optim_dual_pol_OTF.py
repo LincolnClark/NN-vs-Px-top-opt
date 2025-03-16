@@ -4,29 +4,26 @@ import matplotlib.pyplot as plt
 
 import torcwa
 from utils.utils import *
-from utils.neural_network_architectures import NeuralNetwork
-from utils.neural_network_architectures import train_loop_single_angle as train_loop
+from utils.upscaling_pixel_arch import NeuralNetwork
+from utils.upscaling_pixel_arch import train_loop_dual_angle as train_loop
 
-def cost_function(dens, options, angles, layers, target, pol, geom, sim_dtype):
+def cost_function(dens, options, angles, layers, targets, targetp, geom, sim_dtype):
     # Build layers
     eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - dens)
     
     layers[0] = {"t": options["t"], "eps": eps}
-    t = torch.zeros_like(target)
+    ts = torch.zeros_like(targets)
+    tp = torch.zeros_like(targetp)
     for i in range(len(angles)):
         t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
                                        geom, sim_dtype)
-        if pol == "s":
-            t[i] = t_s
-        elif pol == "p":
-            t[i] = t_p
-        else:
-            raise Exception("Invalid polarisation")
+        ts[i] = t_s
+        tp[i] = t_p
 
-    cost = torch.sum((t - target) ** 2)
+    cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
     return torch.sqrt(cost/len(angles))
 
-def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo_dtype, device):
+def Upx_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -51,13 +48,9 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
 
     # Work out the shape of the input vector into NN
     N, M = (options["N NN"], options["M NN"])
-    N, M = (options["N NN"], options["M NN"])
-    model = NeuralNetwork(N, M, options["ker size"],
+    model = NeuralNetwork(N, M,
                           scale = options["scaling"],
-                          channels = options["channels"],
                           offset = options["offset"],
-                          dense_channels = options["dense channels"],
-                          blur = options["NN blur"],
                           device = device).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
@@ -74,8 +67,11 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
     cost_hist = []
 
     for t in range(options["num iterations"]):
+        #print(f"Iteration {t+1}")
+
         train_loop(model, cost_function, optimiser, X, beta[t], kappa_hist, cost_hist, 
-                   options, angles, layers, target, pol, geom, sim_dtype)
+                   options, angles, layers, targets, targetp, geom, sim_dtype)
+    #print("Done!")
 
     model.eval()
     design = model(X)
@@ -91,19 +87,17 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
         eps =  options["mat 2"] + (options["mat 1"] - options["mat 2"])*(1 - design)
     
         layers[0] = {"t": options["t"], "eps": eps}
-        t = torch.zeros_like(target)
+        ts = torch.zeros_like(targets)
+        tp = torch.zeros_like(targetp)
         for i in range(len(angles)):
             t_s, t_p = trans_at_angle_comp(layers, angles[i], options["phi"], options, 
                                         geom, sim_dtype)
-            if pol == "s":
-                t[i] = t_s
-            elif pol == "p":
-                t[i] = t_p
+            ts[i] = t_s
+            tp[i] = t_p
 
-        # Final cost function evaluation
-        final_cost = torch.sum((t - target) ** 2)
+        final_cost = torch.sum((ts - targets) ** 2+ (tp - targetp) ** 2)/2
         final_cost = torch.sqrt(final_cost/len(angles))
 
         cost_hist.append(final_cost.detach().cpu().numpy())
 
-    return design.detach().cpu().numpy(), cost_hist, kappa_hist, t.detach().cpu().numpy()
+    return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 import torcwa
 from utils.utils import *
-from utils.neural_network_architectures import NeuralNetwork
-from utils.neural_network_architectures import train_loop_single_angle as train_loop
+from utils.upscaling_pixel_arch import NeuralNetwork
+from utils.upscaling_pixel_arch import train_loop_single_angle as train_loop
 
 def cost_function(dens, options, angles, layers, target, pol, geom, sim_dtype):
     # Build layers
@@ -26,7 +26,7 @@ def cost_function(dens, options, angles, layers, target, pol, geom, sim_dtype):
     cost = torch.sum((t - target) ** 2)
     return torch.sqrt(cost/len(angles))
 
-def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo_dtype, device):
+def Upx_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo_dtype, device):
     
     # Starting seed for random number generation
     torch.manual_seed(seed)
@@ -52,12 +52,9 @@ def NN_optim_pol(seed, lam, angles, target, pol, layers, options, sim_dtype, geo
     # Work out the shape of the input vector into NN
     N, M = (options["N NN"], options["M NN"])
     N, M = (options["N NN"], options["M NN"])
-    model = NeuralNetwork(N, M, options["ker size"],
+    model = NeuralNetwork(N, M,
                           scale = options["scaling"],
-                          channels = options["channels"],
                           offset = options["offset"],
-                          dense_channels = options["dense channels"],
-                          blur = options["NN blur"],
                           device = device).to(device)
 
     optimiser = torch.optim.Adam(model.parameters(), lr=options["alpha NN"], 
