@@ -226,6 +226,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
             "target s": targets,
             "target p": targetp,
             "angles": angles,
+            "des hist": NN_des_hist
         }
         pickle.dump(pkl_data, file)
 
@@ -239,6 +240,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
             "target s": targets,
             "target p": targetp,
             "angles": angles,
+            "des hist": NN_px_des_hist
         }
         pickle.dump(pkl_data, file)
 
@@ -252,6 +254,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
             "target s": targets,
             "target p": targetp,
             "angles": angles,
+            "des hist": LMpx_des_hists
         }
         pickle.dump(pkl_data, file)
 
@@ -265,6 +268,7 @@ def run_pol_dependent_ang_benchmark(lam, patterned_material, t, angles, targets,
             "target s": targets,
             "target p": targetp,
             "angles": angles,
+            "des hist": px_des_hists
         }
         pickle.dump(pkl_data, file)
 
@@ -425,10 +429,10 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
             "blur": blur,
             "cost history": NN_cost,
             "final designs": NN_des,
-            #"design history": NN_des_hist,
             "perf": NN_t,
             "target": target,
             "angles": angles,
+            "des hist": NN_des_hist
         }
         pickle.dump(pkl_data, file)
 
@@ -437,10 +441,10 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
             "blur": blur,
             "cost history": NN_px_cost,
             "final designs": NN_px_des,
-            #"design history": NN_px_hists,
             "perf": NN_px_t,
             "target": target,
             "angles": angles,
+            "des hist": NN_px_des_hist
         }
         pickle.dump(pkl_data, file)
 
@@ -449,10 +453,10 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
             "blur": blur,
             "cost history": LMpx_costs,
             "final designs": LMpx_designs,
-            #"design history": LMpx_des_hists,
             "perf": LMpx_ts,
             "target": target,
             "angles": angles,
+            "des hist": LMpx_des_hists
         }
         pickle.dump(pkl_data, file)
 
@@ -461,10 +465,10 @@ def run_pol_ind_ang_benchmark(lam, patterned_material, t, angles, target, pol,
             "blur": blur,
             "cost history": px_costs,
             "final designs": px_designs,
-            #"design history": px_des_hists,
             "perf": px_ts,
             "target": target,
             "angles": angles,
+            "des hist": px_des_hists
         }
         pickle.dump(pkl_data, file)
 
