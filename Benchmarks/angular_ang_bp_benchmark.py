@@ -44,8 +44,8 @@ def params(t, patterned_material, lam, period, blur):
             "phi": 1e-8,
 
             # RCWA settings
-            "M": 14, # Number of Fourier coefficients along x
-            "N": 14, # Number of Fourier coefficients along y
+            "M": 12, # Number of Fourier coefficients along x
+            "N": 12, # Number of Fourier coefficients along y
             "nx": 320, # number of x points for design domain
             "ny": 320, # Number of y points for design domain
 
@@ -62,8 +62,8 @@ def params(t, patterned_material, lam, period, blur):
             "num iterations": 300,
             "num NN": 150, # Number of NN iterations for NNpx method
             "NN px fact": 0.5,
-            "beta increase factor": 1.3,
-            "beta increase step": 20, # Number of iterations between thresholding increases
+            "beta increase factor": 1.4,
+            "beta increase step": 15, # Number of iterations between thresholding increases
             "eta norm": 0.5,
 
             # Robustness options
@@ -73,7 +73,7 @@ def params(t, patterned_material, lam, period, blur):
 
             # ADAM optimiser settings
             "alpha": 0.03, # max step size
-            "alpha NN": 0.0005,
+            "alpha NN": 0.001,
             "alpha NN px": 0.02,
             "beta 1": 0.9, # decay rate of 1st moment
             "beta 2": 0.999, # decay rate of 2nd moment

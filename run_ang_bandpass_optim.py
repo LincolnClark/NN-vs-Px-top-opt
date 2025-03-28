@@ -81,7 +81,7 @@ if __name__ == "__main__":
     result_folder = "./Benchmark_results/ang_bandpass/"
     csv_folder = "./Benchmark_results/ang_bandpass/"
 
-    N_ANGLES = 20
+    N_ANGLES = 11
     
     # ========================================================================================================
     blur_level = [None, 0.05, 0.1, 0.2] 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     for i in range(len(lams)):
 
         # Determine the target OTFs
-        angles = torch.linspace(-20, 20, N_ANGLES)
+        angles = torch.linspace(-15, 15, N_ANGLES)
         target = torch.zeros_like(angles)
         target[torch.logical_and(angles >= 5, angles <= 10)] = 1.0
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         # Save benchmark results to dictionary
         add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "s polarisation", blur_level, lams[i], 0.17, periods[i])
 
-    for i in range(len(lams)):
+    """for i in range(len(lams)):
 
         # Determine the target OTFs
         angles = torch.linspace(-20, 20, N_ANGLES)
@@ -157,4 +157,4 @@ if __name__ == "__main__":
         add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "pol insensitive", blur_level, lams[i], 0.17, periods[i])
 
     # Update results csv
-    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
+    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)"""

@@ -62,8 +62,8 @@ def params(t, patterned_material, lam, period, blur):
             "num iterations": 300,
             "num NN": 150, # Number of NN iterations for NNpx method
             "NN px fact": 0.5,
-            "beta increase factor": 1.3,
-            "beta increase step": 20, # Number of iterations between thresholding increases
+            "beta increase factor": 1.4,
+            "beta increase step": 15, # Number of iterations between thresholding increases
             "eta norm": 0.5,
 
             # Robustness options
@@ -73,7 +73,7 @@ def params(t, patterned_material, lam, period, blur):
 
             # ADAM optimiser settings
             "alpha": 0.03, # max step size
-            "alpha NN": 0.0005,
+            "alpha NN": 0.001,
             "alpha NN px": 0.02,
             "beta 1": 0.9, # decay rate of 1st moment
             "beta 2": 0.999, # decay rate of 2nd moment
