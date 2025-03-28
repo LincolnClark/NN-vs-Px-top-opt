@@ -10,6 +10,7 @@ This code performs optimisation for either the angular or spectral amplitude tra
 - matplotlib
 - pandas
 - [TORCWA](https://github.com/kch3782/torcwa)
+- [imageruler](https://github.com/NanoComp/imageruler)
 
 ## Paper
 - [link to paper]()
