@@ -149,4 +149,4 @@ def NN_px_optim_pol(seed, lam, angles, targets, targetp, layers, options, sim_dt
 
         cost_hist.append(final_cost.detach().cpu().numpy())
 
-    return design.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()
+    return kappa_norm.detach().cpu().numpy(), cost_hist, kappa_hist, ts.detach().cpu().numpy(), tp.detach().cpu().numpy()

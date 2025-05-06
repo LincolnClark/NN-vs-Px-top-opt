@@ -44,8 +44,8 @@ def params(t, patterned_material, lam, period, blur):
             "phi": 1e-8,
 
             # RCWA settings
-            "M": 12, # Number of Fourier coefficients along x
-            "N": 12, # Number of Fourier coefficients along y
+            "M": 14, # Number of Fourier coefficients along x
+            "N": 14, # Number of Fourier coefficients along y
             "nx": 320, # number of x points for design domain
             "ny": 320, # Number of y points for design domain
 
