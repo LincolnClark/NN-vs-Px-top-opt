@@ -124,8 +124,27 @@ if __name__ == "__main__":
     print(f"Using {dev} device")
 
     # ===================================================================================================================
-    # Complicated structures
-    print(f"Running Angular Bandpass simulation")
+    print(f"Running s and p bandpass")
+
+    for i in range(len(lams)):
+
+        # Determine the target OTFs
+        angles = torch.linspace(-15, 15, N_ANGLES)
+        target1 = torch.zeros_like(angles)
+        target1[torch.logical_and(angles >= 5, angles <= 10)] = 1.0
+        target2 = torch.fliplr(target1)
+
+        res = run_pol_dependent_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target1,
+                                              target2, periods[i], [None], 
+                                              f"OTF_pol_bandpass_{labels[i]}_ang_bandpass", result_folder, 
+                                              blur_level)
+        # Save benchmark results to dictionary
+        add_results_to_dicts(NN_res, NNpx_res, LMpx_res, px_res, res, "s, p pol", blur_level, lams[i], 0.17, periods[i])
+
+    # Update results csv
+    save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
+
+    print(f"Running pol insensitive bandpass")
 
     for i in range(len(lams)):
 
@@ -143,6 +162,8 @@ if __name__ == "__main__":
 
     # Update results csv
     save_results(NN_res, NNpx_res, LMpx_res, px_res, blur_level, csv_folder)
+
+    print(f"Running s bandpass")
 
     for i in range(len(lams)):
 
