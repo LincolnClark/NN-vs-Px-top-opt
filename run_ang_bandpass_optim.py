@@ -132,7 +132,7 @@ if __name__ == "__main__":
         angles = torch.linspace(-15, 15, N_ANGLES)
         target1 = torch.zeros_like(angles)
         target1[torch.logical_and(angles >= 5, angles <= 10)] = 1.0
-        target2 = torch.fliplr(target1)
+        target2 = torch.flip(target1)
 
         res = run_pol_dependent_ang_benchmark(lams[i], mats[i], thicknesses[i], angles, target1,
                                               target2, periods[i], [None], 
